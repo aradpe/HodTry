@@ -49,6 +49,12 @@
             color: #888;
             margin-bottom: 12px;
         }
+        .upload-divider {
+            margin: 14px 0 10px;
+            font-size: 12px;
+            color: #999;
+            font-weight: bold;
+        }
         .upload-box input[type="file"] {
             display: none;
         }
@@ -71,6 +77,25 @@
             font-size: 13px;
             color: #27ae60;
             font-weight: bold;
+        }
+        .text-input {
+            width: 100%;
+            min-height: 150px;
+            margin-top: 10px;
+            padding: 12px;
+            border: 1px solid #d9e1ea;
+            border-radius: 10px;
+            resize: vertical;
+            font: inherit;
+            line-height: 1.6;
+            direction: rtl;
+            text-align: right;
+            background: #fbfcfe;
+        }
+        .text-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
         }
         .generate-btn {
             display: block;
@@ -163,6 +188,8 @@
                     <input type="file" id="notesFile" accept=".docx">
                 </label>
                 <div class="file-name" id="notesFileName"></div>
+                <div class="upload-divider">&#1488;&#1493;</div>
+                <textarea class="text-input" id="notesText" placeholder="&#1492;&#1491;&#1489;&#1497;&#1511;&#1497; &#1499;&#1488;&#1503; &#1488;&#1514; &#1492;&#1491;&#1490;&#1513;&#1497;&#1501; &#1489;&#1502;&#1511;&#1493;&#1501; &#1500;&#1492;&#1506;&#1500;&#1493;&#1514; &#1511;&#1493;&#1489;&#1509; Word"></textarea>
             </div>
         </div>
 
@@ -210,11 +237,29 @@
             reader.onload = function(e) {
                 mammoth.extractRawText({ arrayBuffer: e.target.result })
                     .then(result => {
-                        notesData = result.value;
+                        notesData = result.value.trim();
+                        document.getElementById('notesText').value = notesData;
                         checkReady();
                     });
             };
             reader.readAsArrayBuffer(file);
+        });
+
+        document.getElementById('notesText').addEventListener('input', function(e) {
+            const value = e.target.value.trim();
+            const selectedFile = document.getElementById('notesFile').files[0];
+
+            notesData = value || null;
+
+            if (value) {
+                document.getElementById('notesFileName').textContent = '\u05E0\u05D8\u05E2\u05DF \u05DE\u05D8\u05E7\u05E1\u05D8 \u05DE\u05D5\u05D3\u05D1\u05E7';
+                document.getElementById('notesBtn').classList.add('loaded');
+            } else {
+                document.getElementById('notesFileName').textContent = selectedFile ? selectedFile.name : '';
+                document.getElementById('notesBtn').classList.toggle('loaded', Boolean(selectedFile));
+            }
+
+            checkReady();
         });
 
         function checkReady() {
