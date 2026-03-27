@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>בוקר טוב - אוטומציה</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .upload-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .upload-box {
+            flex: 1;
+            min-width: 250px;
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .upload-box h3 {
+            margin-bottom: 12px;
+            color: #2c3e50;
+        }
+        .upload-box p {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 12px;
+        }
+        .upload-box input[type="file"] {
+            display: none;
+        }
+        .upload-btn {
+            display: inline-block;
+            padding: 10px 24px;
+            background: #3498db;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: background 0.2s;
+        }
+        .upload-btn:hover { background: #2980b9; }
+        .upload-btn.loaded {
+            background: #27ae60;
+        }
+        .file-name {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .generate-btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: #e67e22;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 20px;
+        }
+        .generate-btn:hover { background: #d35400; }
+        .generate-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .output-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .output-header h2 { color: #2c3e50; }
+        .copy-btn {
+            padding: 8px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .copy-btn:hover { background: #2980b9; }
+        .copy-btn.copied { background: #27ae60; }
+        #output {
+            white-space: pre-wrap;
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            line-height: 1.8;
+            font-size: 15px;
+            direction: rtl;
+            text-align: right;
+            padding: 16px;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        .driver-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stats {
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: #eaf6ff;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #2c3e50;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌅 בוקר טוב - יוצר הודעת בוקר</h1>
+
+        <div class="upload-section">
+            <div class="upload-box">
+                <h3>📊 קובץ הזמנות (Excel)</h3>
+                <p>קובץ ה-xlsx עם ההזמנות</p>
+                <label class="upload-btn" id="excelBtn">בחר קובץ
+                    <input type="file" id="excelFile" accept=".xlsx,.xls">
+                </label>
+                <div class="file-name" id="excelFileName"></div>
+            </div>
+            <div class="upload-box">
+                <h3>📝 קובץ הערות (Word)</h3>
+                <p>קובץ ה-docx עם הדגשים</p>
+                <label class="upload-btn" id="notesBtn">בחר קובץ
+                    <input type="file" id="notesFile" accept=".docx">
+                </label>
+                <div class="file-name" id="notesFileName"></div>
+            </div>
+        </div>
+
+        <button class="generate-btn" id="generateBtn" disabled>🚀 צור הודעת בוקר</button>
+
+        <div class="stats" id="stats"></div>
+
+        <div class="output-section" id="outputSection">
+            <div class="output-header">
+                <h2>הודעת בוקר טוב</h2>
+                <button class="copy-btn" id="copyBtn">📋 העתק</button>
+            </div>
+            <div id="output"></div>
+        </div>
+    </div>
+
+    <script>
+        let ordersData = null;
+        let notesData = null;
+
+        // File upload handlers
+        document.getElementById('excelFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('excelFileName').textContent = file.name;
+            document.getElementById('excelBtn').classList.add('loaded');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const workbook = XLSX.read(e.target.result, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                ordersData = XLSX.utils.sheet_to_json(sheet);
+                checkReady();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        document.getElementById('notesFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('notesFileName').textContent = file.name;
+            document.getElementById('notesBtn').classList.add('loaded');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                mammoth.extractRawText({ arrayBuffer: e.target.result })
+                    .then(result => {
+                        notesData = result.value;
+                        checkReady();
+                    });
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function checkReady() {
+            document.getElementById('generateBtn').disabled = !(ordersData && notesData);
+        }
+
+        document.getElementById('generateBtn').addEventListener('click', generate);
+
+        function parseNotes(rawText) {
+            const lines = rawText.split('\n').map(l => l.trim()).filter(l => l && l !== 'Sent from my iPhone');
+
+            // Known driver names in the notes file
+            const driverSectionNames = [
+                'מרינה', 'אדם עמרי', 'שאדי', 'מאהר', 'מוהיב', 'אורון',
+                'וואחיד', 'ואחיד', 'אנואר', 'חוסיין', 'לירן', 'אלי', 'איברהים'
+            ];
+
+            // Parse general notes (before first driver section) and per-customer notes
+            const generalNotes = [];
+            const customerNotes = {}; // customerNumber -> [note texts]
+            let currentSection = 'general'; // 'general' or driver name
+            let headerLine = null; // first line (title)
+
+            for (const line of lines) {
+                // Skip the title line
+                if (line === 'דגשים למייל בוקר') {
+                    headerLine = line;
+                    continue;
+                }
+
+                // Check if this line is a driver section header
+                const trimmed = line.trim();
+                if (driverSectionNames.includes(trimmed)) {
+                    currentSection = trimmed;
+                    continue;
+                }
+
+                // Try to extract customer number from line
+                // Pattern: number at start, or "number - name" or "number name"
+                const match = line.match(/^(\d{3,5})\s*/);
+                const matchMid = line.match(/^.*?[-–]\s*(\d{3,5})/); // e.g. "ואחיד – 5953..."
+
+                let custNum = null;
+                let noteText = line;
+
+                if (match) {
+                    custNum = match[1];
+                    noteText = line; // keep the full line as the note
+                } else if (matchMid) {
+                    // Handle cases like "לנדוור בנימינה - ואחיד – 5953ללא טעויות"
+                    // Try to find customer number anywhere in the line
+                    const allNums = [...line.matchAll(/(\d{4,5})/g)];
+                    if (allNums.length > 0) {
+                        custNum = allNums[0][1];
+                        noteText = line;
+                    }
+                }
+
+                if (custNum) {
+                    if (!customerNotes[custNum]) customerNotes[custNum] = [];
+                    customerNotes[custNum].push(noteText);
+                } else if (line.length > 3 && currentSection === 'general') {
+                    // General note (not associated with specific customer)
+                    generalNotes.push(line);
+                }
+            }
+
+            return { generalNotes, customerNotes };
+        }
+
+        function normalizeDriverName(excelDriver) {
+            // Map Excel driver names to the output display names
+            const driverMap = {
+                'מרינה': 'מרינה',
+                'מרינה 0': 'מרינה',
+                'מרינה 2': 'מרינה',
+                'אדם עומרי': 'אדם עמרי',
+                'שאדי': 'שאדי',
+                'מאהר': 'מאהר',
+                'מוהיב': 'מוהיב',
+                'אורון': 'אורון',
+                'ואחיד': 'ואחיד',
+                'אנואר': 'אנואר',
+                'חוסיין': 'חוסיין',
+                'לירן': 'לירן',
+                'אלי': 'אלי',
+                'איברהים': 'איברהים',
+            };
+            return driverMap[excelDriver] || null;
+        }
+
+        // Desired order of drivers in output
+        const driverOrder = [
+            'מרינה', 'אדם עמרי', 'מאהר', 'מוהיב', 'אורון',
+            'ואחיד', 'אנואר', 'איברהים', 'לירן', 'אלי', 'חוסיין', 'שאדי'
+        ];
+
+        function generate() {
+            // 1. Get regular orders from Excel, grouped by normalized driver
+            const regularOrders = ordersData.filter(r => r['סוג תעודה'] === 'רגילה');
+
+            const ordersByDriver = {};
+            for (const order of regularOrders) {
+                const driver = normalizeDriverName(order['נהג']);
+                if (!driver) continue;
+                if (!ordersByDriver[driver]) ordersByDriver[driver] = [];
+                const custNum = String(order['מספר לקוח']);
+                // Avoid duplicate customer numbers per driver
+                if (!ordersByDriver[driver].some(o => o.custNum === custNum)) {
+                    ordersByDriver[driver].push({
+                        custNum,
+                        custName: order['לקוח']
+                    });
+                }
+            }
+
+            // 2. Parse notes
+            const { generalNotes, customerNotes } = parseNotes(notesData);
+
+            // 3. Build output
+            let output = 'בוקר טוב,\n\n';
+
+            // Add general notes
+            for (const note of generalNotes) {
+                output += note + '\n';
+            }
+            output += ' \n';
+
+            let totalMatched = 0;
+            let totalWithNotes = 0;
+
+            // 4. For each driver (in order), find customers with notes
+            for (const driver of driverOrder) {
+                const driverOrders = ordersByDriver[driver];
+                if (!driverOrders) continue;
+
+                const driverLines = [];
+                for (const order of driverOrders) {
+                    const notes = customerNotes[order.custNum];
+                    if (notes && notes.length > 0) {
+                        // Join multiple notes for same customer with " | "
+                        driverLines.push(notes.join(' | '));
+                        totalMatched++;
+                    }
+                }
+
+                if (driverLines.length > 0) {
+                    output += driver + '\n\n';
+                    for (const line of driverLines) {
+                        output += line + '\n\n';
+                    }
+                    output += ' \n';
+                    totalWithNotes++;
+                }
+            }
+
+            // 5. Check for notes that reference customers NOT in today's orders (orphan notes)
+            const allOrderedCustomers = new Set();
+            for (const orders of Object.values(ordersByDriver)) {
+                for (const o of orders) allOrderedCustomers.add(o.custNum);
+            }
+            const orphanNotes = [];
+            for (const [custNum, notes] of Object.entries(customerNotes)) {
+                if (!allOrderedCustomers.has(custNum)) {
+                    orphanNotes.push({ custNum, notes });
+                }
+            }
+
+            // Display
+            document.getElementById('output').textContent = output;
+            document.getElementById('outputSection').style.display = 'block';
+
+            // Stats
+            const statsEl = document.getElementById('stats');
+            let statsText = `📊 ${regularOrders.length} הזמנות רגילות | ${Object.keys(customerNotes).length} הערות לקוחות | ${totalMatched} התאמות | ${totalWithNotes} נהגים עם דגשים`;
+            if (orphanNotes.length > 0) {
+                statsText += `\n⚠️ ${orphanNotes.length} הערות ללקוחות שאין להם הזמנה היום: `;
+                statsText += orphanNotes.map(o => o.custNum).join(', ');
+            }
+            statsEl.textContent = statsText;
+            statsEl.style.display = 'block';
+
+            document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Copy button
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            const text = document.getElementById('output').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                this.textContent = '✅ הועתק!';
+                this.classList.add('copied');
+                setTimeout(() => {
+                    this.textContent = '📋 העתק';
+                    this.classList.remove('copied');
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>
