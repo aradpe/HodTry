@@ -20,10 +20,17 @@
             margin: 0 auto;
         }
         h1 {
-            text-align: center;
             color: #2c3e50;
-            margin-bottom: 30px;
+            margin: 0;
             font-size: 28px;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
         }
         .upload-section {
             display: flex;
@@ -116,6 +123,34 @@
             background: #bdc3c7;
             cursor: not-allowed;
         }
+        .filters-section {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 0;
+        }
+        .filter-box {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 2px solid #d6eaf8;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .filter-box label {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .filter-box select {
+            min-width: 180px;
+            padding: 10px 12px;
+            border: 1px solid #d9e1ea;
+            border-radius: 8px;
+            background: #fbfcfe;
+            font: inherit;
+        }
         .output-section {
             background: white;
             border-radius: 12px;
@@ -170,7 +205,19 @@
 </head>
 <body>
     <div class="container">
-        <h1>🌅 בוקר טוב - יוצר הודעת בוקר</h1>
+        <div class="page-header">
+            <h1>🌅 בוקר טוב - יוצר הודעת בוקר</h1>
+            <div class="filters-section">
+                <div class="filter-box">
+                    <label for="shiftFilter">סינון לפי משמרת</label>
+                    <select id="shiftFilter">
+                        <option value="all">כל המשמרות</option>
+                        <option value="ב">בוקר</option>
+                        <option value="ל">לילה</option>
+                    </select>
+                </div>
+            </div>
+        </div>
 
         <div class="upload-section">
             <div class="upload-box">
@@ -211,6 +258,22 @@
     <script>
         let ordersData = null;
         let notesData = null;
+
+        function normalizeShiftValue(rawShift) {
+            const value = String(rawShift || '').trim();
+
+            if (!value) return '';
+            if (value === 'ב' || value.includes('בוקר')) return 'ב';
+            if (value === 'ל' || value.includes('לילה') || value.includes('ערב')) return 'ל';
+
+            return value;
+        }
+
+        function getShiftLabel(shiftValue) {
+            if (shiftValue === 'ב') return 'בוקר';
+            if (shiftValue === 'ל') return 'לילה';
+            return 'כל המשמרות';
+        }
 
         function parseDelimitedText(rawText) {
             const lines = rawText
@@ -311,6 +374,9 @@
         }
 
         document.getElementById('generateBtn').addEventListener('click', generate);
+        document.getElementById('shiftFilter').addEventListener('change', function() {
+            if (ordersData && notesData) generate();
+        });
 
         function parseNotes(rawText) {
             const lines = rawText.split('\n').map(l => l.trim()).filter(l => l && l !== 'Sent from my iPhone');
@@ -402,8 +468,13 @@
         ];
 
         function generate() {
+            const selectedShift = document.getElementById('shiftFilter').value;
             // 1. Get regular orders from Excel, grouped by normalized driver
-            const regularOrders = ordersData.filter(r => r['סוג תעודה'] === 'רגילה');
+            const regularOrders = ordersData.filter(r => {
+                if (r['סוג תעודה'] !== 'רגילה') return false;
+                if (selectedShift === 'all') return true;
+                return normalizeShiftValue(r['משמרת']) === selectedShift;
+            });
 
             const ordersByDriver = {};
             for (const order of regularOrders) {
@@ -430,6 +501,9 @@
             for (const note of generalNotes) {
                 output += note + '\n';
             }
+            if (selectedShift !== 'all') {
+                output += `משמרת: ${getShiftLabel(selectedShift)}\n`;
+            }
             output += ' \n';
 
             let totalMatched = 0;
@@ -452,8 +526,8 @@
 
                 if (driverLines.length > 0) {
                     output += driver + '\n\n';
-                    for (const line of driverLines) {
-                        output += line + '\n\n';
+                    for (const [index, line] of driverLines.entries()) {
+                        output += `${index + 1}. ${line}\n\n`;
                     }
                     output += ' \n';
                     totalWithNotes++;
@@ -478,9 +552,9 @@
 
             // Stats
             const statsEl = document.getElementById('stats');
-            let statsText = `📊 ${regularOrders.length} הזמנות רגילות | ${Object.keys(customerNotes).length} הערות לקוחות | ${totalMatched} התאמות | ${totalWithNotes} נהגים עם דגשים`;
+            let statsText = `📊 ${getShiftLabel(selectedShift)} | ${regularOrders.length} הזמנות רגילות | ${Object.keys(customerNotes).length} הערות לקוחות | ${totalMatched} התאמות | ${totalWithNotes} נהגים עם דגשים`;
             if (orphanNotes.length > 0) {
-                statsText += `\n⚠️ ${orphanNotes.length} הערות ללקוחות שאין להם הזמנה היום: `;
+                statsText += `\n⚠️ ${orphanNotes.length} הערות ללקוחות שאין להם הזמנה במשמרת שנבחרה: `;
                 statsText += orphanNotes.map(o => o.custNum).join(', ');
             }
             statsEl.textContent = statsText;
