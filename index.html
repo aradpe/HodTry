@@ -387,10 +387,10 @@
                 'וואחיד', 'ואחיד', 'אנואר', 'חוסיין', 'לירן', 'אלי', 'איברהים'
             ];
 
-            // Parse general notes (before first driver section) and per-customer notes
+            // Parse general notes and per-customer notes.
+            // Customer matching is based only on the customer number.
             const generalNotes = [];
             const customerNotes = {}; // customerNumber -> [note texts]
-            let currentSection = 'general'; // 'general' or driver name
             let headerLine = null; // first line (title)
 
             for (const line of lines) {
@@ -403,7 +403,6 @@
                 // Check if this line is a driver section header
                 const trimmed = line.trim();
                 if (driverSectionNames.includes(trimmed)) {
-                    currentSection = trimmed;
                     continue;
                 }
 
@@ -431,8 +430,9 @@
                 if (custNum) {
                     if (!customerNotes[custNum]) customerNotes[custNum] = [];
                     customerNotes[custNum].push(noteText);
-                } else if (line.length > 3 && currentSection === 'general') {
-                    // General note (not associated with specific customer)
+                } else if (line.length > 3) {
+                    // Any note without a customer number should float to the top
+                    // of the final output, regardless of where it appeared.
                     generalNotes.push(line);
                 }
             }
@@ -469,19 +469,19 @@
 
         function generate() {
             const selectedShift = document.getElementById('shiftFilter').value;
-            // 1. Get regular orders from Excel, grouped by normalized driver
-            const regularOrders = ordersData.filter(r => {
-                if (r['סוג תעודה'] !== 'רגילה') return false;
+            // 1. Use only the four orders columns and match notes strictly by customer number.
+            const relevantOrders = ordersData.filter(r => {
+                if (!String(r['מספר לקוח'] || '').trim()) return false;
                 if (selectedShift === 'all') return true;
                 return normalizeShiftValue(r['משמרת']) === selectedShift;
             });
 
             const ordersByDriver = {};
-            for (const order of regularOrders) {
+            for (const order of relevantOrders) {
                 const driver = normalizeDriverName(order['נהג']);
                 if (!driver) continue;
                 if (!ordersByDriver[driver]) ordersByDriver[driver] = [];
-                const custNum = String(order['מספר לקוח']);
+                const custNum = String(order['מספר לקוח']).trim();
                 // Avoid duplicate customer numbers per driver
                 if (!ordersByDriver[driver].some(o => o.custNum === custNum)) {
                     ordersByDriver[driver].push({
@@ -500,6 +500,9 @@
             // Add general notes
             for (const note of generalNotes) {
                 output += note + '\n';
+            }
+            if (generalNotes.length > 0) {
+                output += '\n';
             }
             if (selectedShift !== 'all') {
                 output += `משמרת: ${getShiftLabel(selectedShift)}\n`;
@@ -552,7 +555,7 @@
 
             // Stats
             const statsEl = document.getElementById('stats');
-            let statsText = `📊 ${getShiftLabel(selectedShift)} | ${regularOrders.length} הזמנות רגילות | ${Object.keys(customerNotes).length} הערות לקוחות | ${totalMatched} התאמות | ${totalWithNotes} נהגים עם דגשים`;
+            let statsText = `📊 ${getShiftLabel(selectedShift)} | ${relevantOrders.length} הזמנות | ${Object.keys(customerNotes).length} הערות לקוחות | ${generalNotes.length} הערות כלליות | ${totalMatched} התאמות | ${totalWithNotes} נהגים עם דגשים`;
             if (orphanNotes.length > 0) {
                 statsText += `\n⚠️ ${orphanNotes.length} הערות ללקוחות שאין להם הזמנה במשמרת שנבחרה: `;
                 statsText += orphanNotes.map(o => o.custNum).join(', ');
