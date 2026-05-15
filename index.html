@@ -380,14 +380,41 @@
             if (ordersData && notesData) generate();
         });
 
+        function normalizeDriverName(excelDriver) {
+            const rawDriver = String(excelDriver || '').trim().replace(/\s+/g, ' ');
+            if (!rawDriver) return null;
+
+            const compactDriver = rawDriver.replace(/\s+/g, '');
+            if (/^מרינה(?:[02])?$/.test(compactDriver)) {
+                return 'מרינה';
+            }
+
+            // Map Excel driver names to the output display names
+            const driverMap = {
+                'מרינה': 'מרינה',
+                'מרינה 0': 'מרינה',
+                'מרינה 2': 'מרינה',
+                'מרינה0': 'מרינה',
+                'מרינה2': 'מרינה',
+                'אדם עומרי': 'אדם עמרי',
+                'אדם עמרי': 'אדם עמרי',
+                'שאדי': 'שאדי',
+                'מאהר': 'מאהר',
+                'מוהיב': 'מוהיב',
+                'אורון': 'אורון',
+                'וואחיד': 'וואחיד',
+                'ואחיד': 'וואחיד',
+                'אנואר': 'אנואר',
+                'חוסיין': 'חוסיין',
+                'לירן': 'לירן',
+                'אלי': 'אלי',
+                'איברהים': 'איברהים',
+            };
+            return driverMap[rawDriver] || null;
+        }
+
         function parseNotes(rawText) {
             const lines = rawText.split('\n').map(l => l.trim()).filter(l => l && l !== 'Sent from my iPhone');
-
-            // Known driver names in the notes file
-            const driverSectionNames = [
-                'מרינה', 'אדם עמרי', 'שאדי', 'מאהר', 'מוהיב', 'אורון',
-                'וואחיד', 'ואחיד', 'אנואר', 'איברהים', 'חוסיין', 'לירן', 'אלי'
-            ];
 
             // Parse general notes and per-customer notes.
             // Customer matching is based only on the customer number.
@@ -404,28 +431,34 @@
 
                 // Check if this line is a driver section header
                 const trimmed = line.trim();
-                if (driverSectionNames.includes(trimmed)) {
+                if (normalizeDriverName(trimmed)) {
                     continue;
                 }
 
+                // If the user pasted a numbered list such as "1. 6171 ...",
+                // "1) 6171 ..." or "1 - 6171 ...", ignore only the list
+                // numbering and keep the actual customer line.
+                // Plain customer lines such as "6171 ..." are left unchanged.
+                const customerLine = line.replace(/^\d+\s*(?:[.)]|[-–—])\s+(?=\d{3,5}\b)/, '');
+
                 // Try to extract customer number from line
                 // Pattern: number at start, or "number - name" or "number name"
-                const match = line.match(/^(\d{3,5})\s*/);
-                const matchMid = line.match(/^.*?[-–]\s*(\d{3,5})/); // e.g. "ואחיד – 5953..."
+                const match = customerLine.match(/^(\d{3,5})\s*/);
+                const matchMid = customerLine.match(/^.*?[-–]\s*(\d{3,5})/); // e.g. "ואחיד – 5953..."
 
                 let custNum = null;
-                let noteText = line;
+                let noteText = customerLine;
 
                 if (match) {
                     custNum = match[1];
-                    noteText = line; // keep the full line as the note
+                    noteText = customerLine; // keep the full customer line as the note
                 } else if (matchMid) {
                     // Handle cases like "לנדוור בנימינה - ואחיד – 5953ללא טעויות"
                     // Try to find customer number anywhere in the line
-                    const allNums = [...line.matchAll(/(\d{4,5})/g)];
+                    const allNums = [...customerLine.matchAll(/(\d{4,5})/g)];
                     if (allNums.length > 0) {
                         custNum = allNums[0][1];
-                        noteText = line;
+                        noteText = customerLine;
                     }
                 }
 
@@ -440,35 +473,6 @@
             }
 
             return { generalNotes, customerNotes };
-        }
-
-        function normalizeDriverName(excelDriver) {
-            const rawDriver = String(excelDriver || '').trim().replace(/\s+/g, ' ');
-            if (!rawDriver) return null;
-
-            if (/^מרינה(?:\s+[02])?$/.test(rawDriver)) {
-                return 'מרינה';
-            }
-
-            // Map Excel driver names to the output display names
-            const driverMap = {
-                'מרינה': 'מרינה',
-                'מרינה 0': 'מרינה',
-                'מרינה 2': 'מרינה',
-                'אדם עומרי': 'אדם עמרי',
-                'שאדי': 'שאדי',
-                'מאהר': 'מאהר',
-                'מוהיב': 'מוהיב',
-                'אורון': 'אורון',
-                'וואחיד': 'וואחיד',
-                'ואחיד': 'וואחיד',
-                'אנואר': 'אנואר',
-                'חוסיין': 'חוסיין',
-                'לירן': 'לירן',
-                'אלי': 'אלי',
-                'איברהים': 'איברהים',
-            };
-            return driverMap[rawDriver] || null;
         }
 
         // Desired order of drivers in output
