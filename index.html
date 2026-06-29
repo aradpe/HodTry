@@ -383,8 +383,9 @@
         function normalizeDriverName(excelDriver) {
             const rawDriver = String(excelDriver || '').trim().replace(/\s+/g, ' ');
             if (!rawDriver) return null;
+            const withoutLinePrefix = rawDriver.replace(/^קו\s+/, '');
 
-            const compactDriver = rawDriver.replace(/\s+/g, '');
+            const compactDriver = withoutLinePrefix.replace(/\s+/g, '');
             if (/^מרינה(?:[02])?$/.test(compactDriver)) {
                 return 'מרינה';
             }
@@ -396,8 +397,11 @@
                 'מרינה 2': 'מרינה',
                 'מרינה0': 'מרינה',
                 'מרינה2': 'מרינה',
+                'אברהים': 'איברהים',
+                'איברהים': 'איברהים',
                 'אדם עומרי': 'אדם עמרי',
                 'אדם עמרי': 'אדם עמרי',
+                'רביע': 'רביע',
                 'שאדי': 'שאדי',
                 'מאהר': 'מאהר',
                 'מוהיב': 'מוהיב',
@@ -408,9 +412,8 @@
                 'חוסיין': 'חוסיין',
                 'לירן': 'לירן',
                 'אלי': 'אלי',
-                'איברהים': 'איברהים',
             };
-            return driverMap[rawDriver] || null;
+            return driverMap[withoutLinePrefix] || null;
         }
 
         function parseNotes(rawText) {
@@ -423,8 +426,8 @@
             let headerLine = null; // first line (title)
 
             for (const line of lines) {
-                // Skip the title line
-                if (line === 'דגשים למייל בוקר') {
+                // Skip common pasted mail headers/greetings
+                if (line === 'דגשים למייל בוקר' || /^בוקר טוב[,:]?$/u.test(line)) {
                     headerLine = line;
                     continue;
                 }
@@ -477,9 +480,9 @@
 
         // Desired order of drivers in output
         const driverOrder = [
-            'מרינה', 'אדם עמרי', 'שאדי', 'מאהר', 'מוהיב',
-            'אורון', 'וואחיד', 'אנואר', 'איברהים', 'חוסיין',
-            'לירן', 'אלי'
+            'מרינה', 'איברהים', 'אדם עמרי', 'רביע', 'שאדי',
+            'מאהר', 'מוהיב', 'אורון', 'וואחיד', 'אנואר',
+            'חוסיין', 'לירן', 'אלי'
         ];
 
         function generate() {
