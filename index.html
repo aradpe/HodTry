@@ -380,12 +380,14 @@
             if (ordersData && notesData) generate();
         });
 
-        function normalizeDriverName(excelDriver) {
+        function normalizeDriverName(excelDriver, options = {}) {
+            const { allowFallback = false } = options;
             const rawDriver = String(excelDriver || '').trim().replace(/\s+/g, ' ');
             if (!rawDriver) return null;
-            const withoutLinePrefix = rawDriver.replace(/^קו\s+/, '');
+            const withoutLinePrefix = rawDriver.replace(/^קו\s+/, '').trim();
+            const canonicalDriver = withoutLinePrefix.replace(/\s*\/\s*/g, '/');
 
-            const compactDriver = withoutLinePrefix.replace(/\s+/g, '');
+            const compactDriver = canonicalDriver.replace(/\s+/g, '');
             if (/^מרינה(?:[02])?$/.test(compactDriver)) {
                 return 'מרינה';
             }
@@ -399,6 +401,8 @@
                 'מרינה2': 'מרינה',
                 'אברהים': 'איברהים',
                 'איברהים': 'איברהים',
+                'אברהים/איברהים': 'איברהים',
+                'איברהים/אברהים': 'איברהים',
                 'אדם עומרי': 'אדם עמרי',
                 'אדם עמרי': 'אדם עמרי',
                 'רביע': 'רביע',
@@ -413,17 +417,106 @@
                 'לירן': 'לירן',
                 'אלי': 'אלי',
             };
-            return driverMap[withoutLinePrefix] || null;
+            return driverMap[canonicalDriver] || (allowFallback ? canonicalDriver : null);
         }
 
-        function parseNotes(rawText) {
+        const preferredDriverOrder = [
+            'מרינה',
+            'איברהים',
+            'אדם עמרי',
+            'רביע',
+            'שאדי',
+            'מאהר',
+            'מוהיב',
+            'אורון',
+            'וואחיד',
+            'אנואר',
+            'חוסיין',
+            'לירן',
+            'אלי',
+            'נגואן',
+            'יעקב',
+            'מפעל',
+            'באזר 1'
+        ]
+            .map(driver => normalizeDriverName(driver, { allowFallback: true }))
+            .filter((driver, index, arr) => driver && arr.indexOf(driver) === index);
+
+        function simplifyDriverName(driverName) {
+            return String(driverName || '')
+                .trim()
+                .replace(/^קו\s+/, '')
+                .replace(/\s*\/\s*/g, '/')
+                .replace(/[\s"'`׳״_-]+/g, '')
+                .toLowerCase();
+        }
+
+        function resolveDriverHeader(headerText, availableDrivers = new Set()) {
+            const normalizedHeader = normalizeDriverName(headerText, { allowFallback: true });
+            if (!normalizedHeader) return null;
+            if (availableDrivers.has(normalizedHeader)) return normalizedHeader;
+
+            const simplifiedHeader = simplifyDriverName(normalizedHeader);
+            for (const driver of availableDrivers) {
+                if (simplifyDriverName(driver) === simplifiedHeader) {
+                    return driver;
+                }
+            }
+
+            return null;
+        }
+
+        function normalizeCustomerNumber(value) {
+            const rawValue = String(value ?? '').trim();
+            if (!rawValue) return null;
+
+            const directMatch = rawValue.match(/^(\d{3,5})(?:\.0+)?$/);
+            if (directMatch) {
+                return directMatch[1];
+            }
+
+            const embeddedMatch = rawValue.match(/(\d{3,5})/);
+            return embeddedMatch ? embeddedMatch[1] : null;
+        }
+
+        function buildOrderedDrivers(ordersByDriver, noteDriverOrder = []) {
+            const availableDrivers = Object.keys(ordersByDriver);
+            const orderedDrivers = [];
+
+            for (const driver of preferredDriverOrder) {
+                if (availableDrivers.includes(driver) && !orderedDrivers.includes(driver)) {
+                    orderedDrivers.push(driver);
+                }
+            }
+
+            for (const driver of noteDriverOrder) {
+                if (availableDrivers.includes(driver) && !orderedDrivers.includes(driver)) {
+                    orderedDrivers.push(driver);
+                }
+            }
+
+            for (const driver of availableDrivers) {
+                if (!orderedDrivers.includes(driver)) {
+                    orderedDrivers.push(driver);
+                }
+            }
+
+            return orderedDrivers;
+        }
+
+        function parseNotes(rawText, availableDrivers = new Set(), customerDriverMap = {}) {
             const lines = rawText.split('\n').map(l => l.trim()).filter(l => l && l !== 'Sent from my iPhone');
 
             // Parse general notes and per-customer notes.
             // Customer matching is based only on the customer number.
             const generalNotes = [];
             const customerNotes = {}; // customerNumber -> [note texts]
+            const customerNotesByDriver = {}; // driver -> customerNumber -> [note texts]
+            const driverNoteLines = {}; // driver -> [{ custNum, noteText }]
+            const driverOrder = [];
             let headerLine = null; // first line (title)
+            let currentDriver = null;
+            let pendingDriverHeader = null;
 
             for (const line of lines) {
                 // Skip common pasted mail headers/greetings
@@ -434,7 +527,13 @@
 
                 // Check if this line is a driver section header
                 const trimmed = line.trim();
-                if (normalizeDriverName(trimmed)) {
+                const resolvedHeader = resolveDriverHeader(trimmed, availableDrivers);
+                if (resolvedHeader) {
+                    if (!driverOrder.includes(resolvedHeader)) {
+                        driverOrder.push(resolvedHeader);
+                    }
+                    currentDriver = resolvedHeader;
+                    pendingDriverHeader = null;
                     continue;
                 }
 
@@ -453,37 +552,53 @@
                 let noteText = customerLine;
 
                 if (match) {
-                    custNum = match[1];
+                    custNum = normalizeCustomerNumber(match[1]);
                     noteText = customerLine; // keep the full customer line as the note
                 } else if (matchMid) {
                     // Handle cases like "לנדוור בנימינה - ואחיד – 5953ללא טעויות"
                     // Try to find customer number anywhere in the line
                     const allNums = [...customerLine.matchAll(/(\d{4,5})/g)];
                     if (allNums.length > 0) {
-                        custNum = allNums[0][1];
+                        custNum = normalizeCustomerNumber(allNums[0][1]);
                         noteText = customerLine;
                     }
                 }
 
                 if (custNum) {
+                    const inferredDriver = currentDriver || customerDriverMap[custNum] || null;
+                    if (!currentDriver && pendingDriverHeader && inferredDriver) {
+                        currentDriver = inferredDriver;
+                        if (!driverOrder.includes(inferredDriver)) {
+                            driverOrder.push(inferredDriver);
+                        }
+                    }
+
                     if (!customerNotes[custNum]) customerNotes[custNum] = [];
                     customerNotes[custNum].push(noteText);
+                    if (inferredDriver) {
+                        if (!customerNotesByDriver[inferredDriver]) customerNotesByDriver[inferredDriver] = {};
+                        if (!customerNotesByDriver[inferredDriver][custNum]) customerNotesByDriver[inferredDriver][custNum] = [];
+                        customerNotesByDriver[inferredDriver][custNum].push(noteText);
+                        if (!driverNoteLines[inferredDriver]) driverNoteLines[inferredDriver] = [];
+                        driverNoteLines[inferredDriver].push({ custNum, noteText });
+                    }
+                    pendingDriverHeader = null;
                 } else if (line.length > 3) {
+                    const looksLikeDriverHeader = !/\d/.test(trimmed) && trimmed.length <= 40 && trimmed.split(/\s+/).length <= 4;
+                    if (looksLikeDriverHeader) {
+                        pendingDriverHeader = trimmed;
+                        currentDriver = null;
+                        continue;
+                    }
                     // Any note without a customer number should float to the top
                     // of the final output, regardless of where it appeared.
                     generalNotes.push(line);
+                    pendingDriverHeader = null;
                 }
             }
 
-            return { generalNotes, customerNotes };
+            return { generalNotes, customerNotes, customerNotesByDriver, driverNoteLines, driverOrder };
         }
-
-        // Desired order of drivers in output
-        const driverOrder = [
-            'מרינה', 'איברהים', 'אדם עמרי', 'רביע', 'שאדי',
-            'מאהר', 'מוהיב', 'אורון', 'וואחיד', 'אנואר',
-            'חוסיין', 'לירן', 'אלי'
-        ];
 
         function generate() {
             const selectedShift = document.getElementById('shiftFilter').value;
@@ -495,11 +610,14 @@
             });
 
             const ordersByDriver = {};
+            const customerDriverMap = {};
             for (const order of relevantOrders) {
-                const driver = normalizeDriverName(order['נהג']);
+                const driver = normalizeDriverName(order['נהג'], { allowFallback: true });
                 if (!driver) continue;
                 if (!ordersByDriver[driver]) ordersByDriver[driver] = [];
-                const custNum = String(order['מספר לקוח']).trim();
+                const custNum = normalizeCustomerNumber(order['מספר לקוח']);
+                if (!custNum) continue;
+                customerDriverMap[custNum] = driver;
                 // Avoid duplicate customer numbers per driver
                 if (!ordersByDriver[driver].some(o => o.custNum === custNum)) {
                     ordersByDriver[driver].push({
@@ -510,7 +628,9 @@
             }
 
             // 2. Parse notes
-            const { generalNotes, customerNotes } = parseNotes(notesData);
+            const availableDrivers = new Set(Object.keys(ordersByDriver));
+            const { generalNotes, customerNotes, customerNotesByDriver, driverNoteLines, driverOrder } = parseNotes(notesData, availableDrivers, customerDriverMap);
+            const orderedDrivers = buildOrderedDrivers(ordersByDriver, driverOrder);
 
             // 3. Build output
             let output = 'בוקר טוב,\n\n';
@@ -531,15 +651,26 @@
             let totalWithNotes = 0;
 
             // 4. For each driver (in order), find customers with notes
-            for (const driver of driverOrder) {
+            for (const driver of orderedDrivers) {
                 const driverOrders = ordersByDriver[driver];
                 if (!driverOrders) continue;
+                const driverCustomerSet = new Set(driverOrders.map(order => order.custNum));
 
                 const driverLines = [];
+                const usedCustomerNums = new Set();
+
+                for (const noteEntry of driverNoteLines[driver] || []) {
+                    if (driverCustomerSet.has(noteEntry.custNum)) {
+                        driverLines.push(noteEntry.noteText);
+                        usedCustomerNums.add(noteEntry.custNum);
+                        totalMatched++;
+                    }
+                }
+
                 for (const order of driverOrders) {
-                    const notes = customerNotes[order.custNum];
+                    if (usedCustomerNums.has(order.custNum)) continue;
+                    const notes = customerNotesByDriver[driver]?.[order.custNum] || customerNotes[order.custNum];
                     if (notes && notes.length > 0) {
-                        // Join multiple notes for same customer with " | "
                         driverLines.push(notes.join(' | '));
                         totalMatched++;
                     }
