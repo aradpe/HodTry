@@ -153,6 +153,91 @@
             background: #fbfcfe;
             font: inherit;
         }
+        .manage-order-btn {
+            padding: 10px 16px;
+            border: 1px solid #d9e1ea;
+            border-radius: 8px;
+            background: #f7fafc;
+            color: #2c3e50;
+            font: inherit;
+            cursor: pointer;
+        }
+        .manage-order-btn:hover { background: #eef4f8; }
+        .driver-order-panel {
+            display: none;
+            margin: 18px 0 24px;
+            background: white;
+            border-radius: 12px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 2px solid #d6eaf8;
+        }
+        .driver-order-panel.open { display: block; }
+        .driver-order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+        .driver-order-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #2c3e50;
+        }
+        .driver-order-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .driver-order-actions button {
+            padding: 9px 14px;
+            border: 1px solid #d9e1ea;
+            border-radius: 8px;
+            background: #f7fafc;
+            color: #2c3e50;
+            font: inherit;
+            cursor: pointer;
+        }
+        .driver-order-actions button:hover { background: #eef4f8; }
+        .driver-order-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .driver-order-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 1px solid #e5edf4;
+            border-radius: 8px;
+            background: #fbfcfe;
+        }
+        .driver-order-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .driver-order-controls {
+            display: flex;
+            gap: 8px;
+        }
+        .driver-order-controls button {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #d9e1ea;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font: inherit;
+        }
+        .driver-order-controls button:hover { background: #eef4f8; }
+        .driver-order-empty {
+            color: #6b7c93;
+            font-size: 14px;
+        }
         .output-section {
             background: white;
             border-radius: 12px;
@@ -217,8 +302,24 @@
                         <option value="ב">בוקר</option>
                         <option value="ל">לילה</option>
                     </select>
+                    <label for="driverFilter">נהגים</label>
+                    <select id="driverFilter">
+                        <option value="all">כל הנהגים</option>
+                    </select>
+                    <button type="button" class="manage-order-btn" id="manageOrderBtn">סדר נהגים</button>
                 </div>
             </div>
+        </div>
+
+        <div class="driver-order-panel" id="driverOrderPanel">
+            <div class="driver-order-header">
+                <h3>ניהול סדר נהגים</h3>
+                <div class="driver-order-actions">
+                    <button type="button" id="saveDriverOrderBtn">שמור סדר</button>
+                    <button type="button" id="resetDriverOrderBtn">איפוס</button>
+                </div>
+            </div>
+            <div class="driver-order-list" id="driverOrderList"></div>
         </div>
 
         <div class="upload-section">
@@ -260,6 +361,8 @@
     <script>
         let ordersData = null;
         let notesData = null;
+        let manualDriverOrder = [];
+        const DRIVER_ORDER_STORAGE_KEY = 'morning-driver-order-v1';
 
         function normalizeShiftValue(rawShift) {
             const value = String(rawShift || '').trim();
@@ -275,6 +378,28 @@
             if (shiftValue === 'ב') return 'בוקר';
             if (shiftValue === 'ל') return 'לילה';
             return 'כל המשמרות';
+        }
+
+        function getSelectedShift() {
+            return document.getElementById('shiftFilter').value;
+        }
+
+        function getSelectedDriver() {
+            return document.getElementById('driverFilter').value;
+        }
+
+        function loadSavedDriverOrder() {
+            try {
+                const saved = localStorage.getItem(DRIVER_ORDER_STORAGE_KEY);
+                manualDriverOrder = saved ? JSON.parse(saved) : [];
+                if (!Array.isArray(manualDriverOrder)) manualDriverOrder = [];
+            } catch (error) {
+                manualDriverOrder = [];
+            }
+        }
+
+        function saveDriverOrder() {
+            localStorage.setItem(DRIVER_ORDER_STORAGE_KEY, JSON.stringify(manualDriverOrder));
         }
 
         function parseDelimitedText(rawText) {
@@ -313,6 +438,8 @@
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 ordersData = XLSX.utils.sheet_to_json(sheet);
                 document.getElementById('excelText').value = '';
+                refreshDriverOrderState();
+                updateDriverFilterOptions();
                 checkReady();
             };
             reader.readAsArrayBuffer(file);
@@ -324,6 +451,8 @@
             const parsedRows = value ? parseDelimitedText(value) : [];
 
             ordersData = parsedRows.length ? parsedRows : null;
+            refreshDriverOrderState();
+            updateDriverFilterOptions();
 
             if (value) {
                 document.getElementById('excelFileName').textContent = '\u05E0\u05D8\u05E2\u05DF \u05DE\u05D8\u05E7\u05E1\u05D8 \u05DE\u05D5\u05D3\u05D1\u05E7';
@@ -377,6 +506,25 @@
 
         document.getElementById('generateBtn').addEventListener('click', generate);
         document.getElementById('shiftFilter').addEventListener('change', function() {
+            updateDriverFilterOptions();
+            if (ordersData && notesData) generate();
+        });
+        document.getElementById('driverFilter').addEventListener('change', function() {
+            if (ordersData && notesData) generate();
+        });
+        document.getElementById('manageOrderBtn').addEventListener('click', function() {
+            document.getElementById('driverOrderPanel').classList.toggle('open');
+            renderDriverOrderPanel();
+        });
+        document.getElementById('saveDriverOrderBtn').addEventListener('click', function() {
+            saveDriverOrder();
+            refreshDriverOrderState();
+            if (ordersData && notesData) generate();
+        });
+        document.getElementById('resetDriverOrderBtn').addEventListener('click', function() {
+            manualDriverOrder = [];
+            localStorage.removeItem(DRIVER_ORDER_STORAGE_KEY);
+            refreshDriverOrderState();
             if (ordersData && notesData) generate();
         });
 
@@ -442,6 +590,8 @@
             .map(driver => normalizeDriverName(driver, { allowFallback: true }))
             .filter((driver, index, arr) => driver && arr.indexOf(driver) === index);
 
+        loadSavedDriverOrder();
+
         function simplifyDriverName(driverName) {
             return String(driverName || '')
                 .trim()
@@ -482,8 +632,9 @@
         function buildOrderedDrivers(ordersByDriver, noteDriverOrder = []) {
             const availableDrivers = Object.keys(ordersByDriver);
             const orderedDrivers = [];
+            const baseOrder = manualDriverOrder.length > 0 ? manualDriverOrder : preferredDriverOrder;
 
-            for (const driver of preferredDriverOrder) {
+            for (const driver of baseOrder) {
                 if (availableDrivers.includes(driver) && !orderedDrivers.includes(driver)) {
                     orderedDrivers.push(driver);
                 }
@@ -502,6 +653,144 @@
             }
 
             return orderedDrivers;
+        }
+
+        function syncManualDriverOrder(availableDrivers) {
+            const sourceOrder = manualDriverOrder.length > 0 ? manualDriverOrder : preferredDriverOrder;
+            const nextOrder = [];
+
+            for (const driver of sourceOrder) {
+                if (availableDrivers.includes(driver) && !nextOrder.includes(driver)) {
+                    nextOrder.push(driver);
+                }
+            }
+
+            for (const driver of availableDrivers) {
+                if (!nextOrder.includes(driver)) {
+                    nextOrder.push(driver);
+                }
+            }
+
+            manualDriverOrder = nextOrder;
+        }
+
+        function buildOrdersByDriver(sourceOrders, selectedShift = 'all') {
+            const relevantOrders = sourceOrders.filter(r => {
+                if (!String(r['מספר לקוח'] || '').trim()) return false;
+                if (selectedShift === 'all') return true;
+                return normalizeShiftValue(r['משמרת']) === selectedShift;
+            });
+
+            const ordersByDriver = {};
+            const customerDriverMap = {};
+            for (const order of relevantOrders) {
+                const driver = normalizeDriverName(order['נהג'], { allowFallback: true });
+                if (!driver) continue;
+                if (!ordersByDriver[driver]) ordersByDriver[driver] = [];
+                const custNum = normalizeCustomerNumber(order['מספר לקוח']);
+                if (!custNum) continue;
+                customerDriverMap[custNum] = driver;
+                if (!ordersByDriver[driver].some(o => o.custNum === custNum)) {
+                    ordersByDriver[driver].push({
+                        custNum,
+                        custName: order['לקוח']
+                    });
+                }
+            }
+
+            return { relevantOrders, ordersByDriver, customerDriverMap };
+        }
+
+        function updateDriverFilterOptions() {
+            const driverFilter = document.getElementById('driverFilter');
+            const currentValue = driverFilter.value || 'all';
+            driverFilter.innerHTML = '<option value="all">כל הנהגים</option>';
+
+            if (!ordersData) return;
+
+            const { ordersByDriver } = buildOrdersByDriver(ordersData, getSelectedShift());
+            syncManualDriverOrder(Object.keys(ordersByDriver));
+            const orderedDrivers = buildOrderedDrivers(ordersByDriver);
+
+            for (const driver of orderedDrivers) {
+                const option = document.createElement('option');
+                option.value = driver;
+                option.textContent = driver;
+                driverFilter.appendChild(option);
+            }
+
+            driverFilter.value = orderedDrivers.includes(currentValue) ? currentValue : 'all';
+        }
+
+        function moveDriverOrderItem(index, direction) {
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= manualDriverOrder.length) return;
+
+            const nextOrder = [...manualDriverOrder];
+            [nextOrder[index], nextOrder[targetIndex]] = [nextOrder[targetIndex], nextOrder[index]];
+            manualDriverOrder = nextOrder;
+            renderDriverOrderPanel();
+        }
+
+        function renderDriverOrderPanel() {
+            const list = document.getElementById('driverOrderList');
+            list.innerHTML = '';
+
+            if (manualDriverOrder.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'driver-order-empty';
+                empty.textContent = 'טען קובץ הזמנות כדי לנהל את סדר הנהגים.';
+                list.appendChild(empty);
+                return;
+            }
+
+            manualDriverOrder.forEach((driver, index) => {
+                const item = document.createElement('div');
+                item.className = 'driver-order-item';
+
+                const name = document.createElement('div');
+                name.className = 'driver-order-name';
+                name.textContent = driver;
+
+                const controls = document.createElement('div');
+                controls.className = 'driver-order-controls';
+
+                const upBtn = document.createElement('button');
+                upBtn.type = 'button';
+                upBtn.textContent = '↑';
+                upBtn.disabled = index === 0;
+                upBtn.addEventListener('click', function() {
+                    moveDriverOrderItem(index, -1);
+                });
+
+                const downBtn = document.createElement('button');
+                downBtn.type = 'button';
+                downBtn.textContent = '↓';
+                downBtn.disabled = index === manualDriverOrder.length - 1;
+                downBtn.addEventListener('click', function() {
+                    moveDriverOrderItem(index, 1);
+                });
+
+                controls.appendChild(upBtn);
+                controls.appendChild(downBtn);
+                item.appendChild(name);
+                item.appendChild(controls);
+                list.appendChild(item);
+            });
+        }
+
+        function refreshDriverOrderState() {
+            if (!ordersData) {
+                manualDriverOrder = [];
+                renderDriverOrderPanel();
+                updateDriverFilterOptions();
+                return;
+            }
+
+            const { ordersByDriver } = buildOrdersByDriver(ordersData, 'all');
+            syncManualDriverOrder(buildOrderedDrivers(ordersByDriver));
+            renderDriverOrderPanel();
+            updateDriverFilterOptions();
         }
 
         function parseNotes(rawText, availableDrivers = new Set(), customerDriverMap = {}) {
@@ -601,36 +890,17 @@
         }
 
         function generate() {
-            const selectedShift = document.getElementById('shiftFilter').value;
-            // 1. Use only the four orders columns and match notes strictly by customer number.
-            const relevantOrders = ordersData.filter(r => {
-                if (!String(r['מספר לקוח'] || '').trim()) return false;
-                if (selectedShift === 'all') return true;
-                return normalizeShiftValue(r['משמרת']) === selectedShift;
-            });
-
-            const ordersByDriver = {};
-            const customerDriverMap = {};
-            for (const order of relevantOrders) {
-                const driver = normalizeDriverName(order['נהג'], { allowFallback: true });
-                if (!driver) continue;
-                if (!ordersByDriver[driver]) ordersByDriver[driver] = [];
-                const custNum = normalizeCustomerNumber(order['מספר לקוח']);
-                if (!custNum) continue;
-                customerDriverMap[custNum] = driver;
-                // Avoid duplicate customer numbers per driver
-                if (!ordersByDriver[driver].some(o => o.custNum === custNum)) {
-                    ordersByDriver[driver].push({
-                        custNum,
-                        custName: order['לקוח']
-                    });
-                }
-            }
+            const selectedShift = getSelectedShift();
+            const selectedDriver = getSelectedDriver();
+            const { relevantOrders, ordersByDriver, customerDriverMap } = buildOrdersByDriver(ordersData, selectedShift);
 
             // 2. Parse notes
             const availableDrivers = new Set(Object.keys(ordersByDriver));
             const { generalNotes, customerNotes, customerNotesByDriver, driverNoteLines, driverOrder } = parseNotes(notesData, availableDrivers, customerDriverMap);
-            const orderedDrivers = buildOrderedDrivers(ordersByDriver, driverOrder);
+            let orderedDrivers = buildOrderedDrivers(ordersByDriver, driverOrder);
+            if (selectedDriver !== 'all') {
+                orderedDrivers = orderedDrivers.filter(driver => driver === selectedDriver);
+            }
 
             // 3. Build output
             let output = 'בוקר טוב,\n\n';
