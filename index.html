@@ -362,7 +362,7 @@
         let ordersData = null;
         let notesData = null;
         let manualDriverOrder = [];
-        const DRIVER_ORDER_STORAGE_KEY = 'morning-driver-order-v1';
+        const DRIVER_ORDER_STORAGE_KEY = 'morning-driver-order-v2';
 
         function normalizeShiftValue(rawShift) {
             const value = String(rawShift || '').trim();
@@ -554,12 +554,14 @@
                 'אדם עומרי': 'אדם עמרי',
                 'אדם עמרי': 'אדם עמרי',
                 'רביע': 'רביע',
+                'עבד': 'עבד',
                 'שאדי': 'שאדי',
                 'מאהר': 'מאהר',
                 'מוהיב': 'מוהיב',
                 'אורון': 'אורון',
                 'וואחיד': 'וואחיד',
                 'ואחיד': 'וואחיד',
+                'ווחיד': 'וואחיד',
                 'אנואר': 'אנואר',
                 'חוסיין': 'חוסיין',
                 'לירן': 'לירן',
@@ -570,22 +572,20 @@
 
         const preferredDriverOrder = [
             'מרינה',
-            'איברהים',
-            'אדם עמרי',
-            'רביע',
-            'שאדי',
-            'מאהר',
-            'מוהיב',
-            'אורון',
-            'וואחיד',
-            'אנואר',
+            'אברהים',
             'חוסיין',
+            'שאדי',
+            'מוהיב',
+            'נגואן',
+            'שאדי',
+            'אנואר',
+            'אדם עומרי',
+            'מאהר',
+            'ווחיד',
             'לירן',
             'אלי',
-            'נגואן',
-            'יעקב',
-            'מפעל',
-            'באזר 1'
+            'עבד',
+            'רביע'
         ]
             .map(driver => normalizeDriverName(driver, { allowFallback: true }))
             .filter((driver, index, arr) => driver && arr.indexOf(driver) === index);
