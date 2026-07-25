@@ -186,6 +186,11 @@
             font-size: 18px;
             color: #2c3e50;
         }
+        .driver-order-help {
+            margin: 0 0 12px;
+            color: #6b7c93;
+            font-size: 14px;
+        }
         .driver-order-actions {
             display: flex;
             gap: 10px;
@@ -205,6 +210,20 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+        }
+        .driver-order-editor {
+            width: 100%;
+            min-height: 180px;
+            margin-bottom: 14px;
+            padding: 12px;
+            border: 1px solid #d9e1ea;
+            border-radius: 10px;
+            background: #fbfcfe;
+            font: inherit;
+            line-height: 1.6;
+            resize: vertical;
+            direction: rtl;
+            text-align: right;
         }
         .driver-order-item {
             display: flex;
@@ -306,7 +325,7 @@
                     <select id="driverFilter">
                         <option value="all">כל הנהגים</option>
                     </select>
-                    <button type="button" class="manage-order-btn" id="manageOrderBtn">סדר נהגים</button>
+                    <button type="button" class="manage-order-btn" id="manageOrderBtn">DRAG & DROP</button>
                 </div>
             </div>
         </div>
@@ -315,10 +334,13 @@
             <div class="driver-order-header">
                 <h3>ניהול סדר נהגים</h3>
                 <div class="driver-order-actions">
+                    <button type="button" id="applyDriverOrderTextBtn">החל טקסט</button>
                     <button type="button" id="saveDriverOrderBtn">שמור סדר</button>
                     <button type="button" id="resetDriverOrderBtn">איפוס</button>
                 </div>
             </div>
+            <p class="driver-order-help">אפשר לערוך את הסדר מלמעלה למטה, שורה אחת לכל נהג, או לגרור ברשימה שמתחת.</p>
+            <textarea class="driver-order-editor" id="driverOrderEditor"></textarea>
             <div class="driver-order-list" id="driverOrderList"></div>
         </div>
 
@@ -516,6 +538,9 @@
             document.getElementById('driverOrderPanel').classList.toggle('open');
             renderDriverOrderPanel();
         });
+        document.getElementById('applyDriverOrderTextBtn').addEventListener('click', function() {
+            applyDriverOrderFromEditor();
+        });
         document.getElementById('saveDriverOrderBtn').addEventListener('click', function() {
             saveDriverOrder();
             refreshDriverOrderState();
@@ -582,8 +607,8 @@
             'אדם עומרי',
             'מאהר',
             'ווחיד',
-            'לירן',
             'אלי',
+            'לירן',
             'עבד',
             'רביע'
         ]
@@ -733,9 +758,35 @@
             renderDriverOrderPanel();
         }
 
+        function applyDriverOrderFromEditor() {
+            const editor = document.getElementById('driverOrderEditor');
+            const editedDrivers = editor.value
+                .split(/\r?\n/)
+                .map(line => normalizeDriverName(line, { allowFallback: true }))
+                .filter(Boolean);
+
+            const nextOrder = [];
+            for (const driver of editedDrivers) {
+                if (manualDriverOrder.includes(driver) && !nextOrder.includes(driver)) {
+                    nextOrder.push(driver);
+                }
+            }
+
+            for (const driver of manualDriverOrder) {
+                if (!nextOrder.includes(driver)) {
+                    nextOrder.push(driver);
+                }
+            }
+
+            manualDriverOrder = nextOrder;
+            renderDriverOrderPanel();
+        }
+
         function renderDriverOrderPanel() {
             const list = document.getElementById('driverOrderList');
+            const editor = document.getElementById('driverOrderEditor');
             list.innerHTML = '';
+            editor.value = manualDriverOrder.join('\n');
 
             if (manualDriverOrder.length === 0) {
                 const empty = document.createElement('div');
