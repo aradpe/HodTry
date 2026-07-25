@@ -215,25 +215,25 @@
             border: 1px solid #e5edf4;
             border-radius: 8px;
             background: #fbfcfe;
+            cursor: grab;
+        }
+        .driver-order-item.dragging {
+            opacity: 0.55;
+            background: #eef6ff;
+        }
+        .driver-order-item.drag-over {
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.12);
         }
         .driver-order-name {
             font-weight: bold;
             color: #2c3e50;
         }
-        .driver-order-controls {
-            display: flex;
-            gap: 8px;
+        .driver-order-handle {
+            color: #7b8a9a;
+            font-size: 18px;
+            user-select: none;
         }
-        .driver-order-controls button {
-            width: 36px;
-            height: 36px;
-            border: 1px solid #d9e1ea;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            font: inherit;
-        }
-        .driver-order-controls button:hover { background: #eef4f8; }
         .driver-order-empty {
             color: #6b7c93;
             font-size: 14px;
@@ -722,12 +722,13 @@
             driverFilter.value = orderedDrivers.includes(currentValue) ? currentValue : 'all';
         }
 
-        function moveDriverOrderItem(index, direction) {
-            const targetIndex = index + direction;
-            if (targetIndex < 0 || targetIndex >= manualDriverOrder.length) return;
+        function moveDriverOrderItem(fromIndex, toIndex) {
+            if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
+            if (fromIndex >= manualDriverOrder.length || toIndex >= manualDriverOrder.length) return;
 
             const nextOrder = [...manualDriverOrder];
-            [nextOrder[index], nextOrder[targetIndex]] = [nextOrder[targetIndex], nextOrder[index]];
+            const [movedDriver] = nextOrder.splice(fromIndex, 1);
+            nextOrder.splice(toIndex, 0, movedDriver);
             manualDriverOrder = nextOrder;
             renderDriverOrderPanel();
         }
@@ -747,34 +748,48 @@
             manualDriverOrder.forEach((driver, index) => {
                 const item = document.createElement('div');
                 item.className = 'driver-order-item';
+                item.draggable = true;
+                item.dataset.index = String(index);
 
                 const name = document.createElement('div');
                 name.className = 'driver-order-name';
                 name.textContent = driver;
 
-                const controls = document.createElement('div');
-                controls.className = 'driver-order-controls';
+                const handle = document.createElement('div');
+                handle.className = 'driver-order-handle';
+                handle.textContent = '⋮⋮';
 
-                const upBtn = document.createElement('button');
-                upBtn.type = 'button';
-                upBtn.textContent = '↑';
-                upBtn.disabled = index === 0;
-                upBtn.addEventListener('click', function() {
-                    moveDriverOrderItem(index, -1);
+                item.addEventListener('dragstart', function(event) {
+                    event.dataTransfer.setData('text/plain', String(index));
+                    event.dataTransfer.effectAllowed = 'move';
+                    item.classList.add('dragging');
                 });
 
-                const downBtn = document.createElement('button');
-                downBtn.type = 'button';
-                downBtn.textContent = '↓';
-                downBtn.disabled = index === manualDriverOrder.length - 1;
-                downBtn.addEventListener('click', function() {
-                    moveDriverOrderItem(index, 1);
+                item.addEventListener('dragend', function() {
+                    item.classList.remove('dragging');
+                    document.querySelectorAll('.driver-order-item.drag-over').forEach(el => el.classList.remove('drag-over'));
                 });
 
-                controls.appendChild(upBtn);
-                controls.appendChild(downBtn);
+                item.addEventListener('dragover', function(event) {
+                    event.preventDefault();
+                    item.classList.add('drag-over');
+                    event.dataTransfer.dropEffect = 'move';
+                });
+
+                item.addEventListener('dragleave', function() {
+                    item.classList.remove('drag-over');
+                });
+
+                item.addEventListener('drop', function(event) {
+                    event.preventDefault();
+                    item.classList.remove('drag-over');
+                    const fromIndex = Number(event.dataTransfer.getData('text/plain'));
+                    const toIndex = index;
+                    moveDriverOrderItem(fromIndex, toIndex);
+                });
+
                 item.appendChild(name);
-                item.appendChild(controls);
+                item.appendChild(handle);
                 list.appendChild(item);
             });
         }
