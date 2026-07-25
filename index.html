@@ -889,6 +889,25 @@
             return { generalNotes, customerNotes, customerNotesByDriver, driverNoteLines, driverOrder };
         }
 
+        function mergeCustomerNoteTexts(notes) {
+            if (!notes || notes.length === 0) return '';
+            const firstNote = notes[0];
+            const firstSeparator = firstNote.search(/\s[-–—]\s?/);
+            const firstPrefix = firstSeparator >= 0 ? firstNote.slice(0, firstSeparator).trim() : '';
+            const mergedParts = [firstNote];
+
+            for (const note of notes.slice(1)) {
+                let part = note;
+                const separator = note.search(/\s[-–—]\s?/);
+                if (separator >= 0 && firstPrefix && note.slice(0, separator).trim() === firstPrefix) {
+                    part = note.slice(separator).replace(/^\s*[-–—]\s*/, '').trim();
+                }
+                mergedParts.push(part);
+            }
+
+            return mergedParts.join(' | ');
+        }
+
         function generate() {
             const selectedShift = getSelectedShift();
             const selectedDriver = getSelectedDriver();
@@ -927,21 +946,29 @@
                 const driverCustomerSet = new Set(driverOrders.map(order => order.custNum));
 
                 const driverLines = [];
+                const groupedDriverNotes = new Map();
                 const usedCustomerNums = new Set();
 
                 for (const noteEntry of driverNoteLines[driver] || []) {
                     if (driverCustomerSet.has(noteEntry.custNum)) {
-                        driverLines.push(noteEntry.noteText);
+                        if (!groupedDriverNotes.has(noteEntry.custNum)) {
+                            groupedDriverNotes.set(noteEntry.custNum, []);
+                        }
+                        groupedDriverNotes.get(noteEntry.custNum).push(noteEntry.noteText);
                         usedCustomerNums.add(noteEntry.custNum);
                         totalMatched++;
                     }
+                }
+
+                for (const notes of groupedDriverNotes.values()) {
+                    driverLines.push(mergeCustomerNoteTexts(notes));
                 }
 
                 for (const order of driverOrders) {
                     if (usedCustomerNums.has(order.custNum)) continue;
                     const notes = customerNotesByDriver[driver]?.[order.custNum] || customerNotes[order.custNum];
                     if (notes && notes.length > 0) {
-                        driverLines.push(notes.join(' | '));
+                        driverLines.push(mergeCustomerNoteTexts(notes));
                         totalMatched++;
                     }
                 }
