@@ -284,12 +284,13 @@
             border: none;
             padding: 0;
             direction: rtl;
+            width: auto;
         }
         .output-header {
             display: flex;
             align-items: center;
-            flex: 1 1 auto;
-            min-width: 180px;
+            justify-content: flex-start;
+            margin-bottom: 16px;
         }
         .output-header h2 {
             color: #2c3e50;
@@ -299,10 +300,10 @@
         }
         .action-row .filter-box {
             display: flex;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
             gap: 16px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
         }
         .copy-btn {
             padding: 8px 20px;
@@ -320,12 +321,12 @@
         }
         .copy-btn.copied { background: #27ae60; }
         .workflow-controls .generate-btn {
-            width: 250px;
+            width: 260px;
             margin-bottom: 0;
             padding: 0 24px;
             font-size: 16px;
             border-radius: 8px;
-            flex: 0 0 250px;
+            flex: 0 0 260px;
         }
         .workflow-controls .copy-btn {
             width: 170px;
@@ -336,7 +337,7 @@
         .workflow-primary {
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             gap: 16px;
             min-width: 0;
         }
@@ -344,8 +345,8 @@
             min-width: 230px;
         }
         .workflow-primary .generate-btn {
-            width: 250px;
-            flex-basis: 250px;
+            width: 260px;
+            flex-basis: 260px;
         }
         .workflow-copy {
             min-width: 0;
@@ -393,8 +394,8 @@
                 width: auto;
             }
             .workflow-controls .generate-btn {
-                width: 250px;
-                flex-basis: 250px;
+                width: 260px;
+                flex-basis: 260px;
             }
             .workflow-controls .copy-btn {
                 width: 170px;
@@ -477,11 +478,12 @@
         </div>
 
         <div class="output-section" id="outputSection">
+            <div class="output-header">
+                <h2>הודעת הבוקר שנוצרה</h2>
+            </div>
+
             <div class="action-row">
                 <div class="filter-box workflow-controls">
-                    <div class="output-header">
-                        <h2>הודעת הבוקר שנוצרה</h2>
-                    </div>
                     <div class="workflow-primary">
                         <label for="shiftFilter">סוג משמרת</label>
                         <select id="shiftFilter">
