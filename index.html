@@ -12,51 +12,55 @@
             font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
             background: #f0f2f5;
             color: #333;
-            padding: 16px 20px;
+            padding: 24px 38px;
             direction: rtl;
         }
         .container {
-            max-width: 1120px;
+            max-width: 1458px;
             margin: 0 auto;
         }
         h1 {
             color: #2c3e50;
             margin: 0;
-            font-size: 28px;
+            font-size: 44px;
+            font-weight: 800;
+            line-height: 1.15;
         }
         .page-header {
             display: flex;
-            justify-content: flex-start;
+            justify-content: center;
             align-items: center;
             gap: 16px;
-            margin-bottom: 18px;
+            margin-bottom: 32px;
             flex-wrap: wrap;
         }
         .upload-section {
             display: flex;
-            gap: 24px;
-            margin-bottom: 22px;
+            gap: 26px;
+            margin-bottom: 24px;
             flex-wrap: wrap;
         }
         .upload-box {
             flex: 1 1 0;
             min-width: 340px;
             background: white;
-            border-radius: 12px;
-            padding: 22px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 14px;
+            padding: 36px 32px;
+            box-shadow: 0 6px 20px rgba(44, 62, 80, 0.12);
             text-align: center;
         }
         .upload-box h3 {
-            margin-bottom: 12px;
+            margin-bottom: 28px;
             color: #2c3e50;
+            font-size: 24px;
+            font-weight: 800;
         }
         .text-input {
             width: 100%;
-            min-height: 235px;
-            margin-top: 10px;
-            padding: 14px;
-            border: 1px solid #d9e1ea;
+            min-height: 368px;
+            margin-top: 0;
+            padding: 22px;
+            border: 2px solid #d9e1ea;
             border-radius: 10px;
             resize: vertical;
             font: inherit;
@@ -64,6 +68,7 @@
             direction: rtl;
             text-align: right;
             background: #fbfcfe;
+            font-size: 22px;
         }
         .text-input:focus {
             outline: none;
@@ -92,22 +97,22 @@
         .filters-section {
             display: flex;
             justify-content: flex-end;
-            margin-bottom: 22px;
+            margin-bottom: 28px;
         }
         .action-row {
             display: flex;
             justify-content: center;
-            margin-bottom: 22px;
+            margin-bottom: 24px;
         }
         .filter-box {
             background: white;
-            border-radius: 12px;
-            padding: 14px 18px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            border: 2px solid #d6eaf8;
+            border-radius: 14px;
+            padding: 36px 36px;
+            box-shadow: 0 6px 20px rgba(44, 62, 80, 0.12);
+            border: none;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 36px;
             flex-wrap: wrap;
         }
         .filters-section .filter-box,
@@ -115,33 +120,39 @@
             width: 100%;
         }
         .filters-section .filter-box {
-            justify-content: flex-start;
+            justify-content: space-between;
         }
         .action-row .filter-box {
-            justify-content: center;
-            gap: 14px;
+            justify-content: flex-start;
+            gap: 32px;
             flex-wrap: nowrap;
             overflow-x: auto;
         }
         .filter-box label {
             font-weight: bold;
             color: #2c3e50;
+            font-size: 22px;
+            white-space: nowrap;
         }
         .filter-box select {
-            min-width: 180px;
-            padding: 10px 12px;
-            border: 1px solid #d9e1ea;
+            min-width: 364px;
+            padding: 13px 18px;
+            border: 2px solid #d9e1ea;
             border-radius: 8px;
             background: #fbfcfe;
             font: inherit;
+            font-size: 22px;
+            height: 66px;
         }
         .manage-order-btn {
-            padding: 10px 16px;
-            border: 1px solid #d9e1ea;
+            min-width: 234px;
+            padding: 16px 28px;
+            border: 2px solid #007bff;
             border-radius: 8px;
-            background: #f7fafc;
-            color: #2c3e50;
+            background: white;
+            color: #007bff;
             font: inherit;
+            font-size: 20px;
             cursor: pointer;
         }
         .manage-order-btn:hover { background: #eef4f8; }
@@ -269,31 +280,43 @@
         }
         .copy-btn.copied { background: #27ae60; }
         .workflow-controls .generate-btn {
-            width: 220px;
+            width: 410px;
             margin-bottom: 0;
-            padding: 10px 24px;
-            font-size: 15px;
+            padding: 0 24px;
+            font-size: 22px;
             border-radius: 8px;
-            flex: 0 0 220px;
+            flex: 0 0 410px;
         }
         .workflow-controls .copy-btn {
-            width: 154px;
-            padding: 10px 24px;
-            font-size: 15px;
-            flex: 0 0 154px;
+            width: 287px;
+            padding: 0 24px;
+            font-size: 22px;
+            flex: 0 0 287px;
         }
         .workflow-controls select,
         .workflow-controls button {
-            min-height: 44px;
-            height: 44px;
+            min-height: 66px;
+            height: 66px;
             white-space: nowrap;
         }
         @media (max-width: 760px) {
             body {
                 padding: 14px;
             }
+            h1 {
+                font-size: 32px;
+            }
             .upload-box {
                 min-width: 100%;
+                padding: 24px 20px;
+            }
+            .text-input {
+                min-height: 250px;
+                font-size: 18px;
+            }
+            .filter-box {
+                padding: 22px;
+                gap: 16px;
             }
             .filter-box,
             .filters-section .filter-box,
@@ -308,10 +331,12 @@
                 width: auto;
             }
             .workflow-controls .generate-btn {
-                width: 220px;
+                width: 300px;
+                flex-basis: 300px;
             }
             .workflow-controls .copy-btn {
-                width: 154px;
+                width: 210px;
+                flex-basis: 210px;
             }
         }
         #output {
@@ -353,7 +378,7 @@
                 <select id="driverFilter">
                     <option value="all">כל הנהגים</option>
                 </select>
-                <button type="button" class="manage-order-btn" id="manageOrderBtn">סידור נהגים</button>
+                <button type="button" class="manage-order-btn" id="manageOrderBtn">⠿ סידור נהגים</button>
             </div>
         </div>
 
