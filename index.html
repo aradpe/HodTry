@@ -6,8 +6,6 @@
     <title>בוקר טוב - אוטומציה</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f4fbf1'/%3E%3Cpath d='M50 14C35 15 23 24 18 38c-2 6-1 11 2 14 3 3 8 4 14 2 14-5 23-17 24-32l-8 8c-3-1-6-1-9 0-6 2-11 6-16 13 3-8 8-14 15-18 4-2 8-3 12-3l8-8c-1 0-2 0-2 0Z' fill='%232e7d32'/%3E%3Cpath d='M24 44c5-7 10-11 16-13' fill='none' stroke='%2395d574' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
     <link rel="shortcut icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f4fbf1'/%3E%3Cpath d='M50 14C35 15 23 24 18 38c-2 6-1 11 2 14 3 3 8 4 14 2 14-5 23-17 24-32l-8 8c-3-1-6-1-9 0-6 2-11 6-16 13 3-8 8-14 15-18 4-2 8-3 12-3l8-8c-1 0-2 0-2 0Z' fill='%232e7d32'/%3E%3Cpath d='M24 44c5-7 10-11 16-13' fill='none' stroke='%2395d574' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -52,40 +50,6 @@
         .upload-box h3 {
             margin-bottom: 12px;
             color: #2c3e50;
-        }
-        .upload-box p {
-            font-size: 13px;
-            color: #888;
-            margin-bottom: 12px;
-        }
-        .upload-divider {
-            margin: 14px 0 10px;
-            font-size: 12px;
-            color: #999;
-            font-weight: bold;
-        }
-        .upload-box input[type="file"] {
-            display: none;
-        }
-        .upload-btn {
-            display: inline-block;
-            padding: 10px 24px;
-            background: #3498db;
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 15px;
-            transition: background 0.2s;
-        }
-        .upload-btn:hover { background: #2980b9; }
-        .upload-btn.loaded {
-            background: #27ae60;
-        }
-        .file-name {
-            margin-top: 8px;
-            font-size: 13px;
-            color: #27ae60;
-            font-weight: bold;
         }
         .text-input {
             width: 100%;
@@ -281,7 +245,22 @@
             font-size: 14px;
         }
         .copy-btn:hover { background: #2980b9; }
+        .copy-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
         .copy-btn.copied { background: #27ae60; }
+        .workflow-controls .generate-btn {
+            width: auto;
+            margin-bottom: 0;
+            padding: 10px 18px;
+            font-size: 15px;
+            border-radius: 8px;
+        }
+        .workflow-controls .copy-btn {
+            padding: 10px 18px;
+            font-size: 15px;
+        }
         #output {
             white-space: pre-wrap;
             font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
@@ -314,13 +293,17 @@
         <div class="page-header">
             <h1>🌅 בוקר טוב - יוצר הודעת בוקר</h1>
             <div class="filters-section">
-                <div class="filter-box">
-                    <label for="shiftFilter">סינון לפי משמרת</label>
+                <div class="filter-box workflow-controls">
+                    <label for="shiftFilter">סוג משמרת</label>
                     <select id="shiftFilter">
                         <option value="all">כל המשמרות</option>
                         <option value="ב">בוקר</option>
                         <option value="ל">לילה</option>
                     </select>
+                    <button class="generate-btn" id="generateBtn" disabled>🚀 צור הודעת בוקר</button>
+                    <button class="copy-btn" id="copyBtn" disabled>📋 העתק</button>
+                </div>
+                <div class="filter-box">
                     <label for="driverFilter">נהגים</label>
                     <select id="driverFilter">
                         <option value="all">כל הנהגים</option>
@@ -346,35 +329,21 @@
 
         <div class="upload-section">
             <div class="upload-box">
-                <h3>📊 קובץ הזמנות (Excel)</h3>
-                <p>קובץ ה-xlsx עם ההזמנות</p>
-                <label class="upload-btn" id="excelBtn">בחר קובץ
-                    <input type="file" id="excelFile" accept=".xlsx,.xls">
-                </label>
-                <div class="file-name" id="excelFileName"></div>
-                <div class="upload-divider">&#1488;&#1493;</div>
-                <textarea class="text-input" id="excelText" placeholder="&#1492;&#1491;&#1489;&#1497;&#1511;&#1497; &#1499;&#1488;&#1503; &#1496;&#1489;&#1500;&#1514; &#1492;&#1494;&#1502;&#1504;&#1493;&#1514; &#1513;&#1492;&#1493;&#1506;&#1514;&#1511;&#1492; &#1502;-Excel"></textarea>
+                <h3>📊 הזמנות</h3>
+                <textarea class="text-input" id="excelText" placeholder="העתק לכאן את העמודות:
+מספר לקוח | שם לקוח | משמרת | נהג"></textarea>
             </div>
             <div class="upload-box">
-                <h3>📝 קובץ הערות (Word)</h3>
-                <p>קובץ ה-docx עם הדגשים</p>
-                <label class="upload-btn" id="notesBtn">בחר קובץ
-                    <input type="file" id="notesFile" accept=".docx">
-                </label>
-                <div class="file-name" id="notesFileName"></div>
-                <div class="upload-divider">&#1488;&#1493;</div>
-                <textarea class="text-input" id="notesText" placeholder="&#1492;&#1491;&#1489;&#1497;&#1511;&#1497; &#1499;&#1488;&#1503; &#1488;&#1514; &#1492;&#1491;&#1490;&#1513;&#1497;&#1501; &#1489;&#1502;&#1511;&#1493;&#1501; &#1500;&#1492;&#1506;&#1500;&#1493;&#1514; &#1511;&#1493;&#1489;&#1509; Word"></textarea>
+                <h3>📝 הערות</h3>
+                <textarea class="text-input" id="notesText" placeholder="הדביקי כאן את הדגשים"></textarea>
             </div>
         </div>
-
-        <button class="generate-btn" id="generateBtn" disabled>🚀 צור הודעת בוקר</button>
 
         <div class="stats" id="stats"></div>
 
         <div class="output-section" id="outputSection">
             <div class="output-header">
                 <h2>הודעת בוקר טוב</h2>
-                <button class="copy-btn" id="copyBtn">📋 העתק</button>
             </div>
             <div id="output"></div>
         </div>
@@ -447,77 +416,21 @@
                 });
         }
 
-        // File upload handlers
-        document.getElementById('excelFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            document.getElementById('excelFileName').textContent = file.name;
-            document.getElementById('excelBtn').classList.add('loaded');
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const workbook = XLSX.read(e.target.result, { type: 'array' });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                ordersData = XLSX.utils.sheet_to_json(sheet);
-                document.getElementById('excelText').value = '';
-                refreshDriverOrderState();
-                updateDriverFilterOptions();
-                checkReady();
-            };
-            reader.readAsArrayBuffer(file);
-        });
-
         document.getElementById('excelText').addEventListener('input', function(e) {
             const value = e.target.value.trim();
-            const selectedFile = document.getElementById('excelFile').files[0];
             const parsedRows = value ? parseDelimitedText(value) : [];
 
             ordersData = parsedRows.length ? parsedRows : null;
             refreshDriverOrderState();
             updateDriverFilterOptions();
 
-            if (value) {
-                document.getElementById('excelFileName').textContent = '\u05E0\u05D8\u05E2\u05DF \u05DE\u05D8\u05E7\u05E1\u05D8 \u05DE\u05D5\u05D3\u05D1\u05E7';
-                document.getElementById('excelBtn').classList.add('loaded');
-            } else {
-                document.getElementById('excelFileName').textContent = selectedFile ? selectedFile.name : '';
-                document.getElementById('excelBtn').classList.toggle('loaded', Boolean(selectedFile));
-            }
-
             checkReady();
-        });
-
-        document.getElementById('notesFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            document.getElementById('notesFileName').textContent = file.name;
-            document.getElementById('notesBtn').classList.add('loaded');
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                mammoth.extractRawText({ arrayBuffer: e.target.result })
-                    .then(result => {
-                        notesData = result.value.trim();
-                        document.getElementById('notesText').value = notesData;
-                        checkReady();
-                    });
-            };
-            reader.readAsArrayBuffer(file);
         });
 
         document.getElementById('notesText').addEventListener('input', function(e) {
             const value = e.target.value.trim();
-            const selectedFile = document.getElementById('notesFile').files[0];
 
             notesData = value || null;
-
-            if (value) {
-                document.getElementById('notesFileName').textContent = '\u05E0\u05D8\u05E2\u05DF \u05DE\u05D8\u05E7\u05E1\u05D8 \u05DE\u05D5\u05D3\u05D1\u05E7';
-                document.getElementById('notesBtn').classList.add('loaded');
-            } else {
-                document.getElementById('notesFileName').textContent = selectedFile ? selectedFile.name : '';
-                document.getElementById('notesBtn').classList.toggle('loaded', Boolean(selectedFile));
-            }
 
             checkReady();
         });
@@ -791,7 +704,7 @@
             if (manualDriverOrder.length === 0) {
                 const empty = document.createElement('div');
                 empty.className = 'driver-order-empty';
-                empty.textContent = 'טען קובץ הזמנות כדי לנהל את סדר הנהגים.';
+                empty.textContent = 'הדבק הזמנות כדי לנהל את סדר הנהגים.';
                 list.appendChild(empty);
                 return;
             }
@@ -1064,6 +977,7 @@
             // Display
             document.getElementById('output').textContent = output;
             document.getElementById('outputSection').style.display = 'block';
+            document.getElementById('copyBtn').disabled = false;
 
             // Stats
             const statsEl = document.getElementById('stats');
@@ -1080,6 +994,7 @@
 
         // Copy button
         document.getElementById('copyBtn').addEventListener('click', function() {
+            if (this.disabled) return;
             const text = document.getElementById('output').textContent;
             navigator.clipboard.writeText(text).then(() => {
                 this.textContent = '✅ הועתק!';
