@@ -29,7 +29,7 @@
             justify-content: space-between;
             align-items: center;
             gap: 16px;
-            margin-bottom: 30px;
+            margin-bottom: 18px;
             flex-wrap: wrap;
         }
         .upload-section {
@@ -92,7 +92,12 @@
         .filters-section {
             display: flex;
             justify-content: flex-end;
-            margin-bottom: 0;
+            margin-bottom: 24px;
+        }
+        .action-row {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 24px;
         }
         .filter-box {
             background: white;
@@ -261,6 +266,10 @@
             padding: 10px 18px;
             font-size: 15px;
         }
+        .workflow-controls select,
+        .workflow-controls button {
+            min-height: 42px;
+        }
         #output {
             white-space: pre-wrap;
             font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
@@ -292,24 +301,15 @@
     <div class="container">
         <div class="page-header">
             <h1>🌅 בוקר טוב - יוצר הודעת בוקר</h1>
-            <div class="filters-section">
-                <div class="filter-box workflow-controls">
-                    <label for="shiftFilter">סוג משמרת</label>
-                    <select id="shiftFilter">
-                        <option value="all">כל המשמרות</option>
-                        <option value="ב">בוקר</option>
-                        <option value="ל">לילה</option>
-                    </select>
-                    <button class="generate-btn" id="generateBtn" disabled>🚀 צור הודעת בוקר</button>
-                    <button class="copy-btn" id="copyBtn" disabled>📋 העתק</button>
-                </div>
-                <div class="filter-box">
-                    <label for="driverFilter">נהגים</label>
-                    <select id="driverFilter">
-                        <option value="all">כל הנהגים</option>
-                    </select>
-                    <button type="button" class="manage-order-btn" id="manageOrderBtn">DRAG & DROP</button>
-                </div>
+        </div>
+
+        <div class="filters-section">
+            <div class="filter-box">
+                <label for="driverFilter">נהגים</label>
+                <select id="driverFilter">
+                    <option value="all">כל הנהגים</option>
+                </select>
+                <button type="button" class="manage-order-btn" id="manageOrderBtn">סידור נהגים</button>
             </div>
         </div>
 
@@ -336,6 +336,19 @@
             <div class="upload-box">
                 <h3>📝 הערות</h3>
                 <textarea class="text-input" id="notesText" placeholder="הדביקי כאן את הדגשים"></textarea>
+            </div>
+        </div>
+
+        <div class="action-row">
+            <div class="filter-box workflow-controls">
+                <label for="shiftFilter">סוג משמרת</label>
+                <select id="shiftFilter">
+                    <option value="all">כל המשמרות</option>
+                    <option value="ב">בוקר</option>
+                    <option value="ל">לילה</option>
+                </select>
+                <button class="generate-btn" id="generateBtn" disabled>🚀 צור הודעת בוקר</button>
+                <button class="copy-btn" id="copyBtn" disabled>📋 העתק</button>
             </div>
         </div>
 
