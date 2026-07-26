@@ -258,7 +258,7 @@
             display: block;
         }
         .output-section .action-row {
-            margin-bottom: 14px;
+            margin: 14px 0;
         }
         .output-section .workflow-controls {
             background: transparent;
@@ -297,10 +297,10 @@
             flex: 0 0 230px;
         }
         .workflow-controls .copy-btn {
-            width: 161px;
+            width: 190px;
             padding: 0 24px;
             font-size: 16px;
-            flex: 0 0 161px;
+            flex: 0 0 190px;
         }
         .workflow-controls select,
         .workflow-controls button {
@@ -365,7 +365,7 @@
             color: #2c3e50;
         }
         .stats {
-            margin-bottom: 14px;
+            margin-top: 14px;
             padding: 12px 16px;
             background: #eaf6ff;
             border-radius: 8px;
@@ -418,7 +418,10 @@
         </div>
 
         <div class="output-section" id="outputSection">
-            <div class="stats" id="stats"></div>
+            <div class="output-header">
+                <h2>הודעת בוקר טוב</h2>
+            </div>
+            <div id="output"></div>
 
             <div class="action-row">
                 <div class="filter-box workflow-controls">
@@ -433,10 +436,7 @@
                 </div>
             </div>
 
-            <div class="output-header">
-                <h2>הודעת בוקר טוב</h2>
-            </div>
-            <div id="output"></div>
+            <div class="stats" id="stats"></div>
         </div>
     </div>
 
