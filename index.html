@@ -35,13 +35,12 @@
             flex-wrap: wrap;
         }
         .upload-section {
-            display: flex;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 16px;
             margin-bottom: 14px;
-            flex-wrap: wrap;
         }
         .upload-box {
-            flex: 1 1 0;
             min-width: 300px;
             background: white;
             border-radius: 14px;
@@ -123,10 +122,10 @@
             justify-content: space-between;
         }
         .action-row .filter-box {
-            justify-content: flex-start;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            align-items: center;
             gap: 18px;
-            flex-wrap: nowrap;
-            overflow-x: auto;
         }
         .filter-box label {
             font-weight: bold;
@@ -297,10 +296,26 @@
             flex: 0 0 230px;
         }
         .workflow-controls .copy-btn {
-            width: 320px;
+            width: 100%;
             padding: 0 24px;
             font-size: 16px;
-            flex: 0 0 320px;
+        }
+        .workflow-primary {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 18px;
+            min-width: 0;
+        }
+        .workflow-primary select {
+            min-width: 180px;
+        }
+        .workflow-primary .generate-btn {
+            width: 180px;
+            flex-basis: 180px;
+        }
+        .workflow-copy {
+            min-width: 0;
         }
         .workflow-controls select,
         .workflow-controls button {
@@ -318,6 +333,10 @@
             .upload-box {
                 min-width: 100%;
                 padding: 24px 20px;
+            }
+            .upload-section,
+            .action-row .filter-box {
+                grid-template-columns: 1fr;
             }
             .text-input {
                 min-height: 250px;
@@ -344,8 +363,8 @@
                 flex-basis: 300px;
             }
             .workflow-controls .copy-btn {
-                width: 210px;
-                flex-basis: 210px;
+                width: 100%;
+                flex-basis: auto;
             }
         }
         #output {
@@ -422,14 +441,18 @@
 
             <div class="action-row">
                 <div class="filter-box workflow-controls">
-                    <label for="shiftFilter">סוג משמרת</label>
-                    <select id="shiftFilter">
-                        <option value="all">כל המשמרות</option>
-                        <option value="ב">בוקר</option>
-                        <option value="ל">לילה</option>
-                    </select>
-                    <button class="generate-btn" id="generateBtn" disabled>🚀 צור הודעת בוקר</button>
-                    <button class="copy-btn" id="copyBtn" disabled>📋 העתק</button>
+                    <div class="workflow-primary">
+                        <label for="shiftFilter">סוג משמרת</label>
+                        <select id="shiftFilter">
+                            <option value="all">כל המשמרות</option>
+                            <option value="ב">בוקר</option>
+                            <option value="ל">לילה</option>
+                        </select>
+                        <button class="generate-btn" id="generateBtn" disabled>🚀 צור הודעת בוקר</button>
+                    </div>
+                    <div class="workflow-copy">
+                        <button class="copy-btn" id="copyBtn" disabled>📋 העתק</button>
+                    </div>
                 </div>
             </div>
 
