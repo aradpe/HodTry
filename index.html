@@ -125,10 +125,11 @@
             gap: 18px;
         }
         .action-row .filter-box {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            display: flex;
+            justify-content: center;
             align-items: center;
             gap: 18px;
+            flex-wrap: nowrap;
         }
         .filter-box label {
             font-weight: bold;
@@ -275,7 +276,7 @@
             display: block;
         }
         .output-section .action-row {
-            margin-bottom: 14px;
+            margin-bottom: 22px;
         }
         .output-section .workflow-controls {
             background: transparent;
@@ -306,31 +307,32 @@
         }
         .copy-btn.copied { background: #27ae60; }
         .workflow-controls .generate-btn {
-            width: 230px;
+            width: 260px;
             margin-bottom: 0;
             padding: 0 24px;
             font-size: 16px;
             border-radius: 8px;
-            flex: 0 0 230px;
+            flex: 0 0 260px;
         }
         .workflow-controls .copy-btn {
-            width: 100%;
+            width: 170px;
             padding: 0 24px;
             font-size: 16px;
+            flex: 0 0 170px;
         }
         .workflow-primary {
             display: flex;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: center;
             gap: 18px;
             min-width: 0;
         }
         .workflow-primary select {
-            min-width: 180px;
+            min-width: 240px;
         }
         .workflow-primary .generate-btn {
-            width: 180px;
-            flex-basis: 180px;
+            width: 260px;
+            flex-basis: 260px;
         }
         .workflow-copy {
             min-width: 0;
@@ -382,12 +384,11 @@
                 flex-basis: 300px;
             }
             .workflow-controls .copy-btn {
-                width: 100%;
-                flex-basis: auto;
+                width: 170px;
+                flex-basis: 170px;
             }
         }
         #output {
-            white-space: pre-wrap;
             font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
             line-height: 1.8;
             font-size: 15px;
@@ -397,6 +398,9 @@
             background: #fafafa;
             border-radius: 8px;
             border: 1px solid #eee;
+            width: 100%;
+            min-height: 260px;
+            resize: vertical;
         }
         .driver-name {
             font-weight: bold;
@@ -480,9 +484,9 @@
             </div>
 
             <div class="output-header">
-                <h2>הודעת בוקר טוב</h2>
+                <h2>הודעת הבוקר שנוצרה</h2>
             </div>
-            <div id="output"></div>
+            <textarea id="output"></textarea>
         </div>
     </div>
 
@@ -1112,7 +1116,7 @@
             }
 
             // Display
-            document.getElementById('output').textContent = output;
+            document.getElementById('output').value = output;
             document.getElementById('outputSection').style.display = 'block';
             document.getElementById('copyBtn').disabled = false;
 
@@ -1132,7 +1136,7 @@
         // Copy button
         document.getElementById('copyBtn').addEventListener('click', function() {
             if (this.disabled) return;
-            const text = document.getElementById('output').textContent;
+            const text = document.getElementById('output').value;
             navigator.clipboard.writeText(text).then(() => {
                 this.textContent = '✅ הועתק!';
                 this.classList.add('copied');
