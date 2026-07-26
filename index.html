@@ -263,45 +263,30 @@
             display: block;
         }
         .action-toolbar {
-            direction: ltr;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            direction: rtl;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
             align-items: center;
             gap: 16px;
+            flex-wrap: nowrap;
             width: 100%;
             margin-bottom: 16px;
-        }
-        .action-toolbar-right,
-        .action-toolbar-left {
-            display: flex;
-            align-items: center;
-            min-width: 0;
-        }
-        .action-toolbar-right {
-            grid-column: 2;
-            direction: rtl;
-            justify-content: space-between;
-            gap: 16px;
-        }
-        .action-toolbar-left {
-            grid-column: 1;
-            direction: rtl;
-            justify-content: flex-end;
         }
         .shift-control {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
             flex: 0 0 auto;
         }
         .shift-control label {
             font-weight: bold;
             color: #2c3e50;
-            font-size: 16px;
+            font-size: 18px;
             white-space: nowrap;
         }
         .shift-control select {
-            width: 170px;
+            width: 190px;
             min-width: 0;
             height: 44px;
             padding: 8px 14px;
@@ -327,13 +312,13 @@
         }
         .copy-btn.copied { background: #27ae60; }
         .generate-button {
-            width: 220px;
+            width: 260px;
             height: 44px;
             margin-bottom: 0;
             padding: 0 24px;
             font-size: 16px;
             border-radius: 8px;
-            flex: 0 0 220px;
+            flex: 0 0 260px;
         }
         .copy-button {
             width: 170px;
@@ -379,12 +364,6 @@
         }
         @media (max-width: 700px) {
             .action-toolbar {
-                grid-template-columns: 1fr;
-            }
-            .action-toolbar-right,
-            .action-toolbar-left {
-                grid-column: 1;
-                justify-content: flex-start;
                 flex-wrap: wrap;
             }
         }
@@ -467,20 +446,16 @@
 
         <div class="generated-section" id="outputSection">
             <div class="action-toolbar">
-                <div class="action-toolbar-right">
-                    <div class="shift-control">
-                        <label for="shiftFilter">סוג משמרת</label>
-                        <select id="shiftFilter">
-                            <option value="all">כל המשמרות</option>
-                            <option value="ב">בוקר</option>
-                            <option value="ל">לילה</option>
-                        </select>
-                    </div>
-                    <button class="generate-btn generate-button" id="generateBtn" disabled>🚀 צור הודעת בוקר</button>
+                <div class="shift-control">
+                    <label for="shiftFilter">סוג משמרת</label>
+                    <select id="shiftFilter">
+                        <option value="all">כל המשמרות</option>
+                        <option value="ב">בוקר</option>
+                        <option value="ל">לילה</option>
+                    </select>
                 </div>
-                <div class="action-toolbar-left">
-                    <button class="copy-btn copy-button" id="copyBtn" disabled>📋 העתק</button>
-                </div>
+                <button class="generate-btn generate-button" id="generateBtn" disabled>🚀 צור הודעת בוקר</button>
+                <button class="copy-btn copy-button" id="copyBtn" disabled>📋 העתק</button>
             </div>
 
             <textarea id="output"></textarea>
