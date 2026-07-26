@@ -368,6 +368,7 @@
             }
         }
         #output {
+            display: none;
             font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
             line-height: 1.8;
             font-size: 15px;
@@ -1088,7 +1089,9 @@
             }
 
             // Display
-            document.getElementById('output').value = output;
+            const outputEl = document.getElementById('output');
+            outputEl.value = output;
+            outputEl.style.display = 'block';
             document.getElementById('outputSection').style.display = 'block';
             document.getElementById('copyBtn').disabled = false;
 
