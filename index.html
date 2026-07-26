@@ -120,6 +120,8 @@
         .action-row .filter-box {
             justify-content: center;
             gap: 14px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
         }
         .filter-box label {
             font-weight: bold;
@@ -267,20 +269,24 @@
         }
         .copy-btn.copied { background: #27ae60; }
         .workflow-controls .generate-btn {
-            min-width: 190px;
+            width: 220px;
             margin-bottom: 0;
             padding: 10px 24px;
             font-size: 15px;
             border-radius: 8px;
+            flex: 0 0 220px;
         }
         .workflow-controls .copy-btn {
-            min-width: 190px;
+            width: 154px;
             padding: 10px 24px;
             font-size: 15px;
+            flex: 0 0 154px;
         }
         .workflow-controls select,
         .workflow-controls button {
             min-height: 44px;
+            height: 44px;
+            white-space: nowrap;
         }
         @media (max-width: 760px) {
             body {
@@ -297,6 +303,15 @@
             .filter-box select,
             .filter-box button {
                 width: 100%;
+            }
+            .workflow-controls select {
+                width: auto;
+            }
+            .workflow-controls .generate-btn {
+                width: 220px;
+            }
+            .workflow-controls .copy-btn {
+                width: 154px;
             }
         }
         #output {
