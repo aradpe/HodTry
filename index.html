@@ -926,8 +926,10 @@
                 const customerLine = line.replace(/^\d+\s*(?:[.)]|[-–—])\s+(?=\d{3,5}\b)/, '');
 
                 // Try to extract customer number from line
-                // Pattern: number at start, or "number - name" or "number name"
+                // Pattern: number at start, "number - name", "number name",
+                // or "customer name number - note".
                 const match = customerLine.match(/^(\d{3,5})\s*/);
+                const matchNameThenNumber = customerLine.match(/^.+?\s(\d{3,5})\s*(?:-|[\u2013\u2014])\s*/);
                 const matchMid = customerLine.match(/^.*?[-–]\s*(\d{3,5})/); // e.g. "ואחיד – 5953..."
 
                 let custNum = null;
@@ -936,6 +938,9 @@
                 if (match) {
                     custNum = normalizeCustomerNumber(match[1]);
                     noteText = customerLine; // keep the full customer line as the note
+                } else if (matchNameThenNumber) {
+                    custNum = normalizeCustomerNumber(matchNameThenNumber[1]);
+                    noteText = customerLine;
                 } else if (matchMid) {
                     // Handle cases like "לנדוור בנימינה - ואחיד – 5953ללא טעויות"
                     // Try to find customer number anywhere in the line
