@@ -1006,6 +1006,52 @@
             return mergedParts.join(' | ');
         }
 
+        function escapeRegExp(value) {
+            return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function extractCustomerNameFromNote(custNum, noteText) {
+            const note = String(noteText || '').trim();
+            const escapedNum = escapeRegExp(custNum);
+            const nameThenNumber = note.match(new RegExp(`^(.+?)\\s+${escapedNum}\\s*(?:-|[\\u2013\\u2014])\\s*`));
+            if (nameThenNumber) return nameThenNumber[1].trim();
+
+            const numberThenName = note.match(new RegExp(`^${escapedNum}\\s*(?:-|[\\u2013\\u2014])?\\s*([^\\-\\u2013\\u2014]+?)\\s*(?:-|[\\u2013\\u2014])\\s*`));
+            return numberThenName ? numberThenName[1].trim() : '';
+        }
+
+        function stripCustomerPrefixFromNote(custNum, noteText, custName = '') {
+            let note = String(noteText || '').trim();
+            if (!note) return '';
+
+            const escapedNum = escapeRegExp(custNum);
+            const cleanedName = String(custName || '').trim();
+            if (cleanedName) {
+                const originalNote = note;
+                const escapedName = escapeRegExp(cleanedName);
+                const nameThenNumberPattern = new RegExp(`^${escapedName}\\s+${escapedNum}\\s*(?:-|[\\u2013\\u2014])\\s*`);
+                const numberThenNamePattern = new RegExp(`^${escapedNum}\\s*(?:-|[\\u2013\\u2014])?\\s*${escapedName}\\s*(?:-|[\\u2013\\u2014])?\\s*`);
+                note = note
+                    .replace(nameThenNumberPattern, '')
+                    .replace(numberThenNamePattern, '');
+                if (note === originalNote) {
+                    note = note.replace(new RegExp(`^${escapedNum}\\s*(?:-|[\\u2013\\u2014])?\\s*`), '');
+                }
+            } else {
+                note = note.replace(new RegExp(`^${escapedNum}\\s*(?:-|[\\u2013\\u2014])?\\s*`), '');
+            }
+
+            return note.replace(/^\s*[-–—]\s*/, '').trim();
+        }
+
+        function formatCustomerNoteText(custNum, noteText, custName = '') {
+            const displayName = String(custName || '').trim() || extractCustomerNameFromNote(custNum, noteText);
+            if (!displayName) return noteText;
+
+            const noteBody = stripCustomerPrefixFromNote(custNum, noteText, displayName);
+            return noteBody ? `${displayName} ${custNum} - ${noteBody}` : `${displayName} ${custNum}`;
+        }
+
         function generate() {
             const selectedShift = getSelectedShift();
             const selectedDriver = getSelectedDriver();
@@ -1017,6 +1063,12 @@
             let orderedDrivers = buildOrderedDrivers(ordersByDriver, driverOrder);
             if (selectedDriver !== 'all') {
                 orderedDrivers = orderedDrivers.filter(driver => driver === selectedDriver);
+            }
+            const customerNameMap = {};
+            for (const orders of Object.values(ordersByDriver)) {
+                for (const order of orders) {
+                    customerNameMap[order.custNum] = order.custName;
+                }
             }
 
             // 3. Build output
@@ -1052,7 +1104,7 @@
                         if (!groupedDriverNotes.has(noteEntry.custNum)) {
                             groupedDriverNotes.set(noteEntry.custNum, []);
                         }
-                        groupedDriverNotes.get(noteEntry.custNum).push(noteEntry.noteText);
+                        groupedDriverNotes.get(noteEntry.custNum).push(formatCustomerNoteText(noteEntry.custNum, noteEntry.noteText, customerNameMap[noteEntry.custNum]));
                         usedCustomerNums.add(noteEntry.custNum);
                         totalMatched++;
                     }
@@ -1066,7 +1118,7 @@
                     if (usedCustomerNums.has(order.custNum)) continue;
                     const notes = customerNotesByDriver[driver]?.[order.custNum] || customerNotes[order.custNum];
                     if (notes && notes.length > 0) {
-                        driverLines.push(mergeCustomerNoteTexts(notes));
+                        driverLines.push(mergeCustomerNoteTexts(notes.map(note => formatCustomerNoteText(order.custNum, note, order.custName))));
                         totalMatched++;
                     }
                 }
