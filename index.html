@@ -1074,7 +1074,7 @@
             if (!displayName) return noteText;
 
             const noteBody = stripCustomerPrefixFromNote(custNum, noteText, displayName);
-            return noteBody ? `${displayName} ${custNum} - ${noteBody}` : `${displayName} ${custNum}`;
+            return noteBody ? `${custNum} ${displayName} - ${noteBody}` : `${custNum} ${displayName}`;
         }
 
         function generate() {
