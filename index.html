@@ -923,7 +923,9 @@
                 // "1) 6171 ..." or "1 - 6171 ...", ignore only the list
                 // numbering and keep the actual customer line.
                 // Plain customer lines such as "6171 ..." are left unchanged.
-                const customerLine = line.replace(/^\d+\s*(?:[.)]|[-–—])\s+(?=\d{3,5}\b)/, '');
+                const customerLine = line
+                    .replace(/^\d+\s*[.)]\s+/, '')
+                    .replace(/^\d+\s*[-–—]\s+(?=\d{3,5}\b)/, '');
 
                 // Try to extract customer number from line
                 // Pattern: number at start, "number - name", "number name",
@@ -1011,7 +1013,7 @@
         }
 
         function extractCustomerNameFromNote(custNum, noteText) {
-            const note = String(noteText || '').trim();
+            const note = String(noteText || '').trim().replace(/^\d+\s*[.)]\s+/, '');
             const escapedNum = escapeRegExp(custNum);
             const nameThenNumber = note.match(new RegExp(`^(.+?)\\s+${escapedNum}\\s*(?:-|[\\u2013\\u2014])\\s*`));
             if (nameThenNumber) return nameThenNumber[1].trim();
@@ -1020,22 +1022,45 @@
             return numberThenName ? numberThenName[1].trim() : '';
         }
 
+        function getCustomerNameVariants(custName, noteName = '') {
+            const variants = [];
+            for (const name of [custName, noteName]) {
+                const cleanName = String(name || '').trim();
+                if (!cleanName) continue;
+                variants.push(cleanName);
+                variants.push(cleanName.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim());
+            }
+            return variants.filter((name, index, arr) => name && arr.indexOf(name) === index);
+        }
+
         function stripCustomerPrefixFromNote(custNum, noteText, custName = '') {
-            let note = String(noteText || '').trim();
+            let note = String(noteText || '').trim().replace(/^\d+\s*[.)]\s+/, '');
             if (!note) return '';
 
             const escapedNum = escapeRegExp(custNum);
             const cleanedName = String(custName || '').trim();
-            if (cleanedName) {
-                const originalNote = note;
-                const escapedName = escapeRegExp(cleanedName);
-                const nameThenNumberPattern = new RegExp(`^${escapedName}\\s+${escapedNum}\\s*(?:-|[\\u2013\\u2014])\\s*`);
-                const numberThenNamePattern = new RegExp(`^${escapedNum}\\s*(?:-|[\\u2013\\u2014])?\\s*${escapedName}\\s*(?:-|[\\u2013\\u2014])?\\s*`);
-                note = note
-                    .replace(nameThenNumberPattern, '')
-                    .replace(numberThenNamePattern, '');
-                if (note === originalNote) {
+            const noteName = extractCustomerNameFromNote(custNum, note);
+            const nameVariants = getCustomerNameVariants(cleanedName, noteName);
+            if (nameVariants.length > 0) {
+                let changed = false;
+                for (const name of nameVariants) {
+                    const originalNote = note;
+                    const escapedName = escapeRegExp(name);
+                    const nameThenNumberPattern = new RegExp(`^${escapedName}\\s+${escapedNum}\\s*(?:-|[\\u2013\\u2014])\\s*`);
+                    const numberThenNamePattern = new RegExp(`^${escapedNum}\\s*(?:-|[\\u2013\\u2014])?\\s*${escapedName}\\s*(?:-|[\\u2013\\u2014])?\\s*`);
+                    note = note
+                        .replace(nameThenNumberPattern, '')
+                        .replace(numberThenNamePattern, '');
+                    changed = changed || note !== originalNote;
+                }
+                if (!changed) {
                     note = note.replace(new RegExp(`^${escapedNum}\\s*(?:-|[\\u2013\\u2014])?\\s*`), '');
+                }
+
+                note = note.replace(new RegExp(`^.+?\\s+${escapedNum}\\s*(?:-|[\\u2013\\u2014])\\s*`), '');
+                for (const name of nameVariants) {
+                    const escapedName = escapeRegExp(name);
+                    note = note.replace(new RegExp(`^${escapedName}\\s*(?:-|[\\u2010-\\u2015])\\s*`), '');
                 }
             } else {
                 note = note.replace(new RegExp(`^${escapedNum}\\s*(?:-|[\\u2013\\u2014])?\\s*`), '');
